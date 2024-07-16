@@ -1,0 +1,307 @@
+---
+title: "Chapter 6"
+author: "Blanca Lizarbe, blanca.lizarbe@uam.es"
+output:
+  pdf_document
+---
+## **Master Fisica de la Materia Condensada y Sistemas Biologicos, 2022-23**
+### **MÉTODOS EXPERIMENTALES Y COMPUTACIONALES EN BIOFÍSICA**
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(car)
+library(knitr)
+rm(list = ls())
+```
+
+## 1. Theory behind two-way ANOVA:a step by step calculation.
+
+Two-way ANOVA is conceptually very similar to one-way ANOVA. We need to find the total sum of squared errors ($SS_T$) and decompose this variance into variance that can be explained by the experiment ($SS_M$) and variance that cannot be explained ($SS_R$). However, in two-way ANOVA, the variance explained by the experiment is the result of two experimental manipulations (*time* and *groups*, in our case). Therefore, we can decompose the *model sum of squares* into variance explained by the first independent variable ($SS_{Time}$), variance explained by the second independent variable ($SS_{Group}$) and variance explained by the interaction of these two variables ($SS_{TxG}$).
+
+Let's get back to our MRI data, only with one of the variables (ADC) and with Groups 1 and 3. In this particular example, **the "two ways" of the ANOVA would be the effect of "group", the effect of "time"**.
+
+```{r,echo = TRUE}
+valores_test<- read.csv("C:/Users/BL.5060101/Dropbox/PC (2)/Documents/UAM/ME/valores.csv", sep=",")
+
+valores_glc <- valores_test[valores_test$Grupo==1|valores_test$Grupo == 3,]
+
+ADC_time_glucose <-  data.frame(ADC = valores_glc$ADC,
+                                Animal= valores_glc$Animal,       
+                                Group = valores_glc$Grupo, 
+                                Time = valores_glc$Tiempo,
+                                Area = valores_glc$Area)
+```
+
+Rearrange the data to obtain the following tables:  
++ The stack matrix:
+```{r, echo = TRUE}
+ADC_time_glucose_meanArea <- with(ADC_time_glucose,
+                                  (aggregate(ADC, 
+                                             by = list(Animal,Time,Group),
+                                             FUN = "mean")))
+
+colnames(ADC_time_glucose_meanArea) <- c("Animal","Time","Group","ADC")
+
+test <- aggregate(ADC ~ Animal + Time + Group,
+                  data = ADC_time_glucose_meanArea,
+                  FUN = mean)
+
+kable(ADC_time_glucose_meanArea)
+```
++ Or by separating the time-points measurements. 
+```{r, echo = TRUE}
+ADC_wide1 <- reshape(ADC_time_glucose_meanArea, 
+                     v.names = "ADC",           
+                     timevar = "Time", 
+                     idvar = "Animal", 
+                     direction = "wide")
+row.names(ADC_wide1) <- NULL
+kable(ADC_wide1)
+```
+
+Now we can see in 14 rows the ADC values by groups (7 animals for group 1, 7 animals in group 3), and in 3 different columns the 3 levels of time. 
+
++ **Total Sum of Squares (SS_T)**
+
+For the one-way ANOVA we had a total (or grand) variance:
+
+\[
+  \makebox[\linewidth]{$SS_{T}=\sum_{i}(x_{i}-\overline x)^2$}
+\]
+Which represents the sum of squares **of all scores when we ignore the group to which they belong** ("i" refers here to all scores, from i = 1 to n= ntotal). We can also express the total sum of squares as the variance multiplied by the degrees of freedom:
+
+\[
+  \makebox[\linewidth]{$SS_{T}=\sum_{i}(x_{i}-\overline x)^2=s_{grand}^2(N-1)$}
+\]
+
+In our case, we can calculate **the total variance** as:
+
+```{r, echo = TRUE}
+s_sq = var(ADC_time_glucose_meanArea$ADC)
+# notice that in this case we are not separating by groups
+n_total = sum(!is.na(ADC_time_glucose_meanArea$ADC))
+SS_T = s_sq*(n_total-1)
+result_SS_T <- data.frame(SS = "SS_T",Value=SS_T)
+kable(result_SS_T)
+```
+
++ **Model sum of squares**
+
+Next, we should calculate the variance explained by "our model", which, as we said, should be the result of the variance of the two independent variables and the corresponding interaction. Before calculating each of the three components, we can calculate directly the $SS_M$ as:
+
+\[
+  \makebox[\linewidth]{$SS_M = \sum_{i=1}^{k} n_k(\overline x_{i}-\overline x_{grand})^2$}
+\]
+
+The grand mean is the mean of all scores and *n* is the number of scores in each group, *i.e.* the number of participants in each of the experimental groups; seven in our case. $\overline x_{i}$, on the other hand, represents the mean value of each experimental group (note that, in this case, we consider six total experimental groups to compare here, coming from the three time-points and two experimental conditions). 
+
+Calculate the grand mean:
+
+
+```{r, echo = FALSE}
+grand.mean <- mean(ADC_time_glucose_meanArea$ADC)
+grand.mean
+```
+
+Use **tapply** to calculate the mean of ecah subgroup (from the 6 considered), their corresponding variance (in relation to the grand mean),  and subsequently sum up the six results.
+```{r, echo = FALSE}
+(SS_M.a <- with(ADC_time_glucose_meanArea, 
+           tapply(ADC, list(Group, Time), 
+                  function (x) (mean(x) - grand.mean)^2)))
+(SS_M.b <- with(ADC_time_glucose_meanArea, 
+           tapply(ADC, list(Group, Time), 
+                  function (x) mean(x))))
+
+SS_M <- sum(7*SS_M.a)
+result_SS_M <- data.frame(SS = "SS_M",
+                          Value = SS_M)
+kable(result_SS_M)
+```
+
+The degrees of freedom for this SS will be the number of groups used, k, minus 1. We used six groups and so **df = 5**. At this stage we know that the model (our experimental manipulations) can explain 59241.21 units of variance out of the total of 400254.2 units. The next stage is to further break down this model sum of squares to see how much variance is explained by our independent variables separately.
+
++ **Group and Time SSq**
+Here, it is useful to remember the organization of the data in the wide format
+```{r}
+kable(ADC_wide1)
+```
+
+In this 14 rows, 3 columns, we can define the variance related to each of the variables (group and time), as variation between the variable in rows (i, from 1 to 2):
+
+\[
+  \makebox[\linewidth]{$SSD_R = n \sum_{i}(\overline x_{i}-\overline x)^2$}
+\]
+
+Which represents the variance between each group-row and the overall mean ("in our example, i = 2, one mean for group 1, one mean for group 3"). Note that we are not taking into account differences in time points at all.
+
+The value and variation between columns (j):
+
+\[
+  \makebox[\linewidth]{$SSD_C = m \sum_{j}(\overline x_{j}-\overline x)^2$}
+\]
+Where j, in our example, goes from 1 to 3 (time-points), In this calculation, we do not take into account the type of experimental group.
+
+We can calculate step by step those sum of squares in our example. This means including:  
+
++ the mean for each experimental group, independently of time 
++ The mean value of each time-point, independently of group  
++ variances 
+
+Use the **aggregate** function on the data frame "ADC_time_glucose_meanArea" to obtain the mentioned information:
+
+```{r, echo = FALSE}
+(means.by.groups <- aggregate(ADC ~ Group,
+                                data = ADC_time_glucose_meanArea,
+                                FUN = mean))
+
+(means.by.time <- aggregate(ADC ~ Time,
+                                data = ADC_time_glucose_meanArea,
+                                FUN = mean))
+## we can check that the mean of the previous "group means" is equal to the grand mean
+(grand.mean1 <- mean(means.by.groups$ADC))
+(grand.mean2 <- mean(means.by.time$ADC))
+
+# If the number of animals per group are different (n gropu 1 and n group 2), those means would not have been equal. that is why we are using groups 1 and 3 (n = 7 in both cases)
+```
+Use the tapply function to calculate the variances
+```{r, echo = FALSE}
+(ns <- with(ADC_time_glucose_meanArea, 
+           tapply(ADC, list(Group, Time), 
+                  function (x) n = sum(!is.na(x)))))
+
+(var.r <- with(ADC_time_glucose_meanArea,
+             tapply(ADC, list(Group), 
+                    function(x) c(mean(x), 
+                                  (mean(x) - grand.mean)^2))))
+(var.c <- with(ADC_time_glucose_meanArea,
+             tapply(ADC, list(Time), 
+                    function(x) c(mean(x), 
+                                  (mean(x) - grand.mean)^2))))
+```
+Now we need to sum up the successive "(xi -x)"
+```{r, echo = FALSE}
+
+SSDR <- (3*ns[1,1]) * (var.r$`1`[2] + var.r$`3`[2])
+SSDC <- (2*ns[1,1]) * (var.c$`0`[2] + var.c$`1`[2] + var.c$`2`[2])
+#pay attention to the ns (inside parentesis?)
+
+(summaries_v2 <- list("Group Means" = means.by.groups$ADC,
+                      "Time Means" = means.by.time$ADC,
+                      "Group Variance" = SSDR,
+                      "Time Variance" = SSDC))
+SSD.rc <- data.frame(SSDR,SSDC)
+```
+In this case, the **df_time=2**, and for the variable *group*, **df=1**.
+
++ **Interaction Sum of Squares**
+
+We can now continue calculating the **interaction sum of squares** $SS_TxG$. In this case, we can calculate it as $SS_TxG = SS_M-SS_T-SS_G$, thus:
+```{r}
+SS_TxG = SS_M - SSDR - SSDC
+result_SS_TxG <- data.frame(SS="SS_TxG",Value =SS_TxG)
+kable(result_SS_TxG)
+
+```
+And the **df of the interaction** are the result of multiplying the corresponding df of each of the independent variables ($df_{TimeXGroup}=2x1=2$)
+
++ **Residual Sum of Squares**
+
+Finally, we need to calculate the **contribution of the variance that is not explained by the model**, the residual sum of squares **$SS_R$**. It represents the individual differences in performance, or the variance that can’t be explained by factors that have systematically manipulated. We saw in one-way ANOVA as $SS_W$. 
+
+\[
+  \makebox[\linewidth]{$SSD_W = \sum_{i} \sum_{j}(x_{ij}-\overline x_i)^2$}
+\]
+
+The SS for each group represents the sum of squared differences between each participant’s score in that group and the group mean. Thus, we can express $SS_R$ as $SSR = SS_{group1} + SS_{group2} + SS_{group3} + ….$ Given that we know the relationship between the variance and the SS, we can use the variances for each group to create an equation like we did for $SS_T$. 
+
+\[
+  \makebox[\linewidth]{$SS_{R}=\sum_{k} s_{k}^2(n_k-1)$}
+\]
+Where $s_{k}$ is the variance from each group and $n_k$ the number of participants of each group.
+
+Use the tapply to calculate the residual variance
+```{r, echo = FALSE}
+(SS_R.p <- with(ADC_time_glucose_meanArea, 
+           tapply(ADC, list(Group, Time), 
+                  function (x) var(x))))
+SS_R <- 6*sum(SS_R.p)
+result_SSR <- data.frame(SS ="SS_R",Value = SS_R)
+kable(result_SSR)
+```
+The degrees of freedom for each group is calculated as one less than the number of scores per group (we have 6 groups with 7 observations, thus **df = 6 x (7 - 1) = 36**)
+
++ **The F ratios**
+
+Each effect in a two-way ANOVA (the two main effects and the interaction) has its own F-ratio. To calculate these we have to first calculate the **mean squares** for each effect by taking the sum of squares and dividing by the respective degrees of freedom. 
+
+```{r, echo=TRUE}
+MSS_Time = SSDC/2
+MSS_Group = SSDR/1
+MSS_TxG = SS_TxG/2
+MSS_R = SS_R/36
+```
+Then, the F ratios:
+
+```{r}
+F_Time = MSS_Time/MSS_R
+F_Group = MSS_Group/MSS_R
+F_TxG = MSS_TxG/MSS_R
+By_hand_Fs <-
+  data.frame(F_names = c("F_Time","F_Group","F_TxG"),
+             F_values = c(F_Time,F_Group,F_TxG))
+kable(By_hand_Fs)
+```
+Now, **each of these F-ratios can be compared against critical values** (based on their degrees of freedom, which can be different for each effect) to evaluate whether these effects are likely to reflect data that have arisen by chance, or reflect an effect of our experimental manipulations. **If an observed F exceeds the corresponding critical values then it is significant**. 
+
+> R can calculate each of these Fratios and their exact significance. Let's try:
+
+```{r}
+df <- ADC_time_glucose_meanArea
+df$fTime <- as.factor(df$Time)
+df$fGroup <- as.factor(df$Group)
+
+m1 <- lm(ADC ~ fTime * fGroup, data = df)
+Anova(m1, type = 2)
+Anova(m1, type = 3)
+```
+Note that we obtain the same F ratio as manually calculated, on the "type II" version. 
+
+
+> Pay attention: we are using Anova with capital A (car package) and the default "type 2" tests. There is another function **anova** that calculates the variances.
+
+# **Types of Anova (and SSq calculations: Summary of Type I, Type II SS:**
+
+Adapted from [**here**](!https://md.psych.bio.uni-goettingen.de/mv/unit/lm_cat/lm_cat_unbal_ss_explained.html#to-obtain-type-i-ss). There are different ways to calculate the sums of squares for ANOVA. There are at least 3 approaches, commonly called Type I, II and III sums of squares. It essentially comes down to testing different hypotheses about the data. Type I, II and III Sums of Squares.
+
+Consider a model that includes two factors A and B; there are therefore two main effects, and an interaction, AB. The full model is represented by **SS(A, B, AB)**.
+
+Other models are represented similarly: SS(A, B) indicates the model with no interaction, SS(B, AB) indicates the model that does not account for effects from factor A, and so on.
+
+The influence of particular factors (including interactions) can be tested by examining the differences between models. For example, to determine the presence of an interaction effect, an F-test of the models SS(A, B, AB) and the no-interaction model SS(A, B) would be carried out.
+
+It is convenient to define incremental sums of squares to represent these differences. Let:  
+
+$SS(AB | A, B) = SS(A, B, AB) - SS(A, B)$  
+$SS(A | B, AB) = SS(A, B, AB) - SS(B, AB)$  
+$SS(B | A, AB) = SS(A, B, AB) - SS(A, AB)$  
+$SS(A | B) = SS(A, B) - SS(B)$  
+$SS(B | A) = SS(A, B) - SS(A)$  
+
+The notation shows the incremental differences in sums of squares, for example SS(AB | A, B) represents “the sum of squares for interaction after the main effects”, and SS(A | B) is “the sum of squares for the A main effect after the B main effect and ignoring interactions” [1].
+
+The different types of sums of squares then arise depending on the stage of model reduction at which they are carried out. In particular:
+
+> **Type I**, also called “sequential” sum of squares, proceeds as follows:  
++ SS(A) for factor A.   
++ SS(B | A) for factor B.   
++ SS(AB | B, A) for interaction AB.   
+This tests the main effect of factor A, followed by the main effect of factor B after the main effect of A, followed by the interaction effect AB after the main effects. Because of the sequential nature and the fact that the two main factors are tested in a particular order, this type of sums of squares will give different results for unbalanced data depending on which main effect is considered first.
+
+> **Type II**:  
++ SS(A | B) for factor A.   
++ SS(B | A) for factor B.   
+This type tests for each main effect after the other main effect. Note that no significant interaction is assumed (in other words, you should test for interaction first (SS(AB | A, B)) and only if AB is not significant, continue with the analysis for main effects). If there is indeed no interaction, then type II is statistically more powerful than type III (see Langsrud [3] for further details).Computationally, this is equivalent to running a type I analysis with different orders of the factors, and taking the appropriate output (the second, where one main effect is run after the other, in the example above).
+
+> **Type III**  
++ SS(A | B, AB) for factor A.  
++ SS(B | A, AB) for factor B.   
+This type tests for the presence of a main effect after the other main effect and interaction. This approach is therefore valid in the presence of significant interactions.
