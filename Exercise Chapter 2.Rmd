@@ -1,0 +1,106 @@
+---
+title: "Exercise lesson 2"
+author: "Blanca Lizarbe"
+date: "20/10/2023"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(car)
+library(knitr)
+```
+
+# **Exercise Chapter 2**: Performing a manual normal q-q plot
+
+We are going to use the data from Chapter 2 (P53) to compare a manual qqplot with R-function based qqplots. Remember that qqplots allow the visualization of the real experimental data distribution (y axis) vs. the quantiles of the normal standard function (x axis).
+
+Create the following qqplots :
+
+1. Using the plot function, plot in the y axis the (0,25,50,75 and 100%) quantiles of the experimental data p53 (you can use function "quantile") Vs the same quantiles of the standard normal distribution
+2. Using the plot function, plot in the y axis the experimental data (sorted) and in the x axis the manual calculation of the quantiles (for the equivalent experimental "n" points of the p53 data)of a standard normal distribution. Add a 45º line. 
+3. a plot using the R function "**qqnorm**". Using the **qqline**, add the 45º line. 
+4. a plot using **qqPlot**
+
+## 1. Plotting the (0,25%,50%,75% and 100%) quantiles 
+```{r, echo = TRUE}
+
+dp53 <- read.table("C:/Users/Laboratorio/Dropbox/PC (2)/Documents/UAM 23-24/BM-2/Lesson2/Lesson-2-files/P53.txt", header = TRUE, stringsAsFactors = TRUE)
+
+# the function quantiles(x) provides the inverse value of the probability (or 
+# "area under the curve"). It is the "cutoff" value at which a specific 
+# percentage of the data lays on. By default, it provides the quantiles every 
+# 0.25 step, from 0 to 1.
+
+y <- quantile(dp53$p53)
+y
+# By observing the obtained "y", we can deduce for example that 25% of the data 
+# of p53 have lower values than 1.9395
+
+# for the standard normal distribution, we can use directly the qnorm function.
+# There is no need (as many of you did) of generating a specific dataset normaly
+# distributed around 0. The qnorm function assumes that, and by providing the 
+# specific probabilities (0, 0.25...) it gives you the quantiles.
+x <- qnorm(c(0.01,0.25,0.5,0.75,0.99))
+# I set the first and last probabilities as 0.01 & 0.99 because 0 and 1 lead to 
+# infinite results.
+plot(x,y)
+```
+  
+## 2. Sorted data Vs quantiles
+
+```{r}
+# sorting the data, storing and assigning positions
+dp53_sorted <- sort(dp53$p53)
+data <- data.frame(dp53$p53, dp53_sorted)
+data$position <- 1:nrow(data)
+n <- nrow(data)
+
+# calculating percentiles 
+data$Phi  <-  (data$position-0.5)/(n)
+data$PhiInv<- qnorm(data$Phi)
+# qnorm: given an area, finds the boundary value that determines this area.
+
+# observing the data
+kable(data)
+plot(data$PhiInv, data$dp53_sorted)
+```
+
+## 3, 4:
+
+```{r,fig.align ='center', fig.width = 6, fig.height = 6}
+#first Manual and qqnorm plots
+par(mfrow = c(1,2)) 
+
+plot(data$PhiInv, data$dp53_sorted, 
+     xlab = "Theoretical Quantiles", ylab = "Sorted p53 data", 
+     main = "Manual Normal Q-Q plot")  
+
+# Using qqnorm
+qqnorm(dp53$p53, main = "qqnornm Q-Q plot" )
+
+```
+
+## 5
+
+```{r}
+# adding qqline
+par(mfrow = c(1,3)) 
+plot(data$PhiInv, data$dp53_sorted, xlab="Theoretical Quantiles",
+ ylab="Sorted p53 data", main="Manual line example")
+
+datos.cuartiles <- quantile(data$dp53_sorted, c(0.25,0.75))
+norm.cuartiles <- qnorm(c(0.25, 0.75))
+b <- (datos.cuartiles[2] - datos.cuartiles[1] )/(norm.cuartiles[2] - 
+                                                   norm.cuartiles[1])
+a <- datos.cuartiles[1] - norm.cuartiles[1] * b
+abline(a, b)
+
+qqnorm(data$dp53_sorted, main = "")
+title("Qqnorm & qqline")
+qqline(data$dp53_sorted)
+
+qqPlot(data$dp53_sorted, 
+       main = "qqPlot")
+```
+
