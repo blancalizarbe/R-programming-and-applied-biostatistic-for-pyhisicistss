@@ -1,0 +1,31 @@
+---
+title: "Exercise 4"
+author: "Blanca Lizarbe"
+date: "2023-10-27"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Observe the following data set, where $S_i$ represents the number of cells of different cellular colonies of bacteria, administered with 4 different kind of sugar each (S1, S2 or s3) 10 colonies (which means 10 groups of cells) measured for each type of sugar administration.
+
+```{r create_p53, echo= TRUE, results='hide'}
+set.seed(1)
+cell.counts <- data.frame(S1 = round(rnorm(10, 16.8*10^4, 3.1*10^3)), 
+                        S2 = round(rnorm(10, 13.8*10^4, 2.9*10^2)), 
+                        S3 = round(rnorm(10, 19.8*10^4, 2.7*10^2)))
+```
+Rearrange the data frame in the most convenient way to:  
+
+• Plot the data in a representative way.  
+
+• Calculate a statistic to evaluate if administering S1, S2 or S3 has influence on cellular replication (cell counts). Provide the t, df and p-value for each type of comparison (independently for each) 
+
+• Provide a CI graph of the t-tests.
+
+• Which sugars you might say alter differently the cell counts?
+
+
