@@ -1,0 +1,618 @@
+---
+title: "**MÉTODOS EXPERIMENTALES Y COMPUTACIONALES EN BIOFÍSICA**"
+subtitle: "Statistical tests, normal distributions, z-scores"
+author: "Blanca Lizarbe, Department of Biochemistry (UAM), blanca.lizarbe@uam.es"  
+output:
+   bookdown::pdf_document2: default
+  
+---
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(car)
+library(RcmdrMisc)
+library(ggplot2)
+library(knitr)
+```
+
+
+In this chapter, we will cover some basic notions of statistical testing, distribution functions of random variables and the related R-codes, z-scores and confident intervals.  
+
+1. Definitions: Statistical models and statistical tests
+2. Hypothesis and tests
+3. Probability distributions
+4. Working with normal distributions in R
+
+
+# Definitions: Statistical models and statistical tests
+
+## Statsitical models
+
+A **statistical model** tries to fit models that accurately reflect an observed data. More formally, it can be defined as set of assumptions about the *probability distribution* that generated some **observed data**. In mathematical terms, the assumptions are formulated as restrictions on the set of probability distributions that could have generated the data.
+
+The **mean** is the simplest model that can be defined. 
+
+**Example**
+
+Suppose that we randomly draw 250 individuals from a certain population in Spain, and **measure their height**. The **Example**: Suppose that we randomly draw 250 individuals from a certain population in Spain, and **measure their height**.
+
+```{r echo = TRUE}
+set.seed(1)
+
+height.spanish.men <- rnorm(n = 250, mean = 174, sd = 5)
+height.spanish.women <- rnorm(n = 250, mean = 163, sd = 6)
+
+par(mfrow = c(1,2))
+hist(height.spanish.men, breaks = 20 )
+hist(height.spanish.women, breaks = 20)
+```
+We can not tell by eye if values are different or not. What about mean values?
+
+```{r, echo = FALSE}
+Mean.men <- mean(height.spanish.men)
+Mean.men
+
+Mean.women <- mean(height.spanish.women)
+Mean.women
+```
+After calculating the means, we could express any woman height as:
+
+```{r, echo = FALSE}
+print("Woman.mean = Mean.men +- error")
+```
+Which represents a **model** to estimate the corresponding values. Next, to determine whether the model is accurate by looking at how different our real data are from the model that we have created. We could calculate this **error** by subtracting the mean value from each of the observed values. To avoid having negative and positive differences, we square this operation. Next, we need to add all of this differences and divide by "N-1". This is called the **variance**: $s^2=\frac{\sum_{i=1}^{n}(x_{i}-\overline{x})}{n-1}$:
+
+The variance is, therefore, the average error between the mean and the observations made (and so is a measure of how well the model fits the actual data). Because the variance is squared, and the original data was not, we define the standard deviation: |$s=\sqrt{s^{2}}$  
+
+# Statistical tests
+
+We can see a slight difference in the mean values, and in the histograms, but, still, we can not tell if such difference means something, or not. In order to investigate such values, and proceed with formal **statistical tests**, several assumptions need to me made.
+
+1. In principle, these random variables could have any **distribution**. If we assume that they have a **normal distribution**, as it is often done for height measurements, then **we are formulating a statistical model: we are placing a restriction on the set of probability distributions that could have generated the data**. By choosing a probability distribution, we are also conditioning the type of test to be performed.
+
+2. The random variables $X_1,X_2,...,X_n$ could have some form of **dependence**. For example, if the members of the sample group live in the same Spanish region, there can a common component that creates a within-group dependence in height. If, on the contrary, we assume that the data is **statistically independent**, then we are placing a further restriction, that is, we are **adding an assumption to our statistical model**.
+
+3. Suppose that for the same **n** individuals we also collect **weight measurements** $Y_1,Y_2,...,Y_n$ , and we assume that there is a linear relation between weight and height, described by a regression equation:
+\[
+  \makebox[\linewidth]{$Y_i=\alpha + \beta X_i +\epsilon_i$}
+\]
+  where $\alpha$ and $\beta$ are regression coefficients and $\epsilon _{i}$ is an error term. This is also a **statistical model** because we have placed a restriction on the set of joint distributions that could have generated the couples $(X_i,Y_i)$: we have ruled out all the joint distributions in which the two variables have a non-linear relation (e.g., quadratic).
+
+4. If we assume that all the errors $\epsilon _{i}$ in the previous regression equation have the same variance (i.e., the errors are not heteroskedastic), then we are placing a further restriction on the set of data-generating distributions. Thus, we have yet another statistical model.
+
+
+# Hypothesis and tests
+
+We can **fit statistical models** to **data** that represent the **hypotheses** that we want to test. There are two kinds of hypothesis: 
+
++ The hypothesis or prediction that comes from our theory, which is usually saying that **an effect will be present**. In our previous example, this could correspond to "Heights between the Spanish men and woman are different". This hypothesis is called the **alternative hypothesis** and is denoted by **$H_1$**. It is sometimes also called the **experimental hypothesis**.    
++ There is another type of hypothesis, the **null hypothesis** and is denoted by **$H_0$**. This hypothesis is the opposite of the alternative hypothesis, and so would usually state that **an effect is absent**. In our example, the null hypothesis would be that the two populations are equally tall.  
+
+We can use **probability** to see whether certain scores (differences between values) can have **happened by chance**. If we combine these two ideas, hypothesis and probabilities, we can **test** whether our **statistical models** (or hypotheses) are **significant fits of the data** we collected. To do this, it is convenient to define first the concepts of **systematic** and **unsystematic variation**:  
+
++ **Systematic variation** is variation that **can be explained by the model** that we’ve fitted to the data (and, therefore, due to the hypothesis that we’re testing). 
++ **Unsystematic variation** is variation that cannot be explained by the model that we’ve fitted. In other words, it is error, or **variation not attributable to the effect we’re investigating**. 
+
+The simplest way to test if the model fits the data, or whether our hypothesis is a good explanation of the observed data , is to **compare the systematic variation against the unsystematic variation**. In doing so, we are comparing how good the model/hypothesis is at explaining the data against how bad it is (the error):
+
+\[
+  \makebox[\linewidth]{$test=\frac{variance\ explained\ by\ the\ model}{variance\ not\ explained\ by\ the\ model}=\frac{effect}{error}$}
+\]
+
+A test statistic is a statistic that has known properties; specifically, we know how frequently different values of this statistic occur. We will see in more detail these questions in chapter 3, when we talk about t-tests. For now, the important idea to retain is that:  
+
++ **We can calculate the probability of obtaining a particular value of a test**
++ **This allows us to establish how likely it would be that we would get a test statistic of a certain size if there were no effect (i.e., the null hypothesis were true)**.
+
+
+
+# Probability distributions
+
+A **probability distribution** defines the probability at which a random variable will take, from any of its possible values. Random variables can be categorized by the values they can take: **discrete**, for countable number of values, or **continuous**, with infinitely possible values.  
+
++ **Discrete** random variables have **probability mass functions (PMF)**, which assign some amount of probability to each possible value. Let **X** be a discrete random variable with range $R_X={x_1,x_2,x_3,...}$ (finite or countably infinite). The function $P_X(x_k)=P(X=x_k)$, for k = 1,2,3,..., is called the probability mass function (PMF) of X. 
+  
+|Properties of PMF                             |
+|:--------------------------------------------:|
+|$0\le P_X(x) \le1$ for all x                  |
+|$\sum_{x\in R_X} P_X(x)=1$                    |
+|$A\subset R_X$,$P(X\in A)=\sum_{x\in A}P_X(x)$|
+
+
+  There are some specific probability distributions that are very commonly used. Behind each of these distributions, there is a random experiment. Since these random experiments model real life phenomenon, these special distributions are used frequently in different applications. Of special interest in statistics for random discrete variables are the **Bernouilli distribution** (models random experiments that hace two possible outcomes), the **binomial distribution** (describes the probability of obtaining **k successes** in **n binomial experiments**) and the **geometric distribution** (describes the probability of experiencing a certain amount of failures before experiencing the first success in a series of binomial experiments).
+ 
++ In **Continuous** random variables, the probability associated with each one of them is effectively (and inevitably) null.This means that probability can only be defined for an interval of values. Consequently, instead of probability mass functions, **probability density functions** (**PDF**), which refer to the density of probability at each value, are defined. Probability is then calculated by integrating the probability density within that interval **$P(a<X<b) = f_X(x)dx$**.     
+
+  Of key importance in statistics is the **normal distribution**. One of the main reasons for that is the Central Limit Theorem (CLT), which states that **by adding a large number of random variables, the distribution of the sum will be approximately normal under certain conditions**. The importance of this result comes from the fact that many random variables in real life can be expressed as the sum of a large number of random variables and, by the CLT, we can argue that distribution of the sum should be normal. The general formula for the **probability density function of the normal distribution** is
+
+\[
+  \makebox[\linewidth]{$f(x)=(e^{-(x-\mu)^{2}/2\sigma^{2}})/\sigma\sqrt{2\pi}$}
+  \]
+
+The case with mu = 0 and sigma = 1 is known as standard normal distribution
+$f(x)=e^{-x^2/2}/\sqrt{2\pi}$
+
++ The **cumulative distribution function (CDF)** of a random variable measures the probability that a random number X takes a value less than or equal to x; *i.e.*:
+
+\[
+  \makebox[\linewidth]{$F_X(x) = P(X\le x)$, for all $x \in \Re$}.
+ \]
+It is calculated as the sum of the probability mass function (for discrete variables) or integral of the probability density function (for continuous variables), from $-\inf$ to x. Note that it is conventional to use a capital **F for a cumulative distribution function**, in contrast to the lower-case **f** used for **probability density functions** and probability mass functions.  For the normal distribution, it is typically used $\Phi$  and $\phi$  instead of F and f, respectively.
+
+More examples [**here**](https://www.probabilitycourse.com/chapter3/3_2_1_cdf.php):
+
+
+# Working with normal distributions in R
+
+In R, there are 4 built-in functions to generate (and work with) the normal distribution, and several of its properties:   
+
++ **dnorm(x, mean, sd)**   
++ **pnorm(x, mean, sd)**  
++ **qnorm(p, mean, sd)**  
++ **rnorm(n, mean, sd)**
+
+1. The "**dnorm**" in R programming calculates the probability density function of a normal distribution. You can type "**?dnorm**" on your console and read the information provided by R. We can use "dnorm" for plotting the probability density function of the data "spanish.height.woman" that we saw before.
+
+```{r, echo = TRUE, fig.align ='center'}
+par(mfrow = c(1,2))
+hist(height.spanish.women, 
+     breaks = 20,
+     xlab = "cm", ylab = "Hist",
+     main = "height.spanish.women")
+plot(x = height.spanish.women, 
+     y = dnorm(height.spanish.women, mean = 163, sd = 6),
+     xlab = "cm", ylab = "PDF")
+```
+An example with another dataset
+```{r, fig.align ='center', fig.height = 4, fig.width = 4}
+s <- seq(-15, 15, by = 0.05)
+mu_s = mean(s)
+sigma_s = sd(s)
+y <- dnorm(s, mu_s, sigma_s)
+
+scatterplot(s, y, ylab = "PDF", smooth = FALSE, boxplot = TRUE, 
+            cex = 0.25,
+            regLine = TRUE)
+```
+
+> **Exercise 1**: Performing a manual dnorm plot. Use the previous values ("s") to plot the PDF without using **"dnorm"**. 
+
+```{r, echo = FALSE, fig.height = 4, fig.width= 4, fig.align = 'center'}
+normal_s <- (exp(-(s-mu_s)^2/(2*sigma_s^2)))/(sigma_s*sqrt(2*pi))
+data_frame <- data.frame(s, normal_s)
+scatterplot(s, normal_s, 
+            smooth = TRUE, 
+            boxplot = TRUE, 
+            cex = 0.2, 
+            regLine = FALSE)
+```
+
+2. The **pnorm()** function in R refers the **cumulative distribution function (CDF)** (the probability that X will take a value less than or equal to x). 
+
+We can use the same "s" values above and plot the CDF of a normal function
+
+```{r, echo = TRUE, fig.align = 'center', fig.height = 4, fig.width = 4}
+y1 <- pnorm(s, mean = 0, sd = 1)
+plot(s, y1, cex = 0.4)
+```
+Or slightly more sophisticated, using our ggplot
+
+```{r, echo = TRUE, fig.align='center', fig.height= 3, fig.width= 3.5}
+ggplot(data.frame(x = s, cumulative = pnorm(s,0,1)), 
+       aes(x,cumulative)) + 
+  geom_line() + 
+  labs(title = "Cumulative distribution function\n of standard normal") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+We can plot **dnorm** and **pnorm** side by side
+
+```{r, echo = TRUE, fig.align ="center", fig.height = 4, fig.width = 10}
+par(mfrow=c(1,2)) 
+y <- dnorm(s, mean(s), sd(s))
+
+plot(s, y, 
+     main = "Probability density function\n of a standard normal",
+     xlab ="", 
+     ylab = "Density", 
+     cex = 0.25)
+plot(s, y1, 
+     main =" Cumulative distribution function", 
+     xlab="", 
+     ylab="Cumulative", 
+     cex = 0.25)
+```
+
+
+3. The **qnorm(p, mean, sd)** function is the inverse of **pnorm()** function. It aims to do the opposite: given an area, find the boundary value that determines this area. A **quantile** is **the fraction (or percent) of points below a given value**. That is, for example, the 0.3 (or 30%) quantile is the point at which 30% percent of a dataset falls below, and 70% falls above that value.
+
+**Exercise 3**: We want to know what IQ score one would need to have to be in the 95th percentile (we want to find the IQ score such that the cumulative probability at that score is 0.95). (For that we need to know that the mean IQ is around 100, and the sd = 15)
+
+```{r, echo = FALSE}
+qnorm(0.95, mean = 100,sd = 15)
+#that gives you 124.6728
+```
+
+
+We can plot the cumulative density of a normal distribution 
+```{r, fig.align ='center', fig.height= 3, fig.width= 3}
+
+q = seq(0.001,0.999, by = 0.0001)
+IQ_probalities <- data.frame(cumulative = q, x = qnorm(q,100,15))
+
+# we just created a table where in the first column a "vector" (cumulative) 
+# probabilities (0<p<x) IQ-probailities is defined, and in the second column 
+# the corresponding IQ-score 
+
+ggplot(IQ_probalities, aes(cumulative,x)) + 
+  geom_line() + 
+  ggtitle('Quantile function\n of the normal IQ distribution') + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  labs(x= "Cumulative probability", y="IQ score") 
+```
+
+4. The **rnorm()** is the function in R programming that is used to generate a vector of random numbers which are normally distributed.
+
+Create a vector of 1000 random numbers with mea n= 90 and sd = 5, and look at the histogram
+```{r, fig.height = 3, fig.width= 6, fig.align ='center'}
+par(mfrow = c(1,2))
+
+x <- rnorm(5000, mean = 10, sd = 4)
+# Create the histogram with 50 bars
+hist(x, breaks = 50)
+qqnorm(x, cex = 0.25)
+```
+>**Wait a minute** Observe the previous **"qq plot"** (quantile-quantile plot). Do you understand it? 
+
+Q-Q plots can be used to compare two sets of experimental data sets: the **experimental Q-Q plots**, or for comparing to a specific distribution, such as the normal, **Normal Q-Q plot**.  
+
++ Normal Q-Q plots allow a qualitative interpretation of the normality (or not) of a data set: The idea is to represent the quantiles of the data in the Y axis Vs the cuantiles of a Normal Standardt distribution on the X axis. If the data has a normal distribution, the resulting plot will be a 45 degree line. If the two distributions being compared are identical, the Q-Q plot follows the 45° line y = x  
+. 
++ If the general trend of the Q-Q plot is flatter than the line y = x, the distribution plotted on the horizontal axis is more dispersed than the distribution plotted on the vertical axis.  
+
++ Conversely, if the general trend of the Q-Q plot is steeper than the line y = x, the distribution plotted on the vertical axis is more dispersed than the distribution plotted on the horizontal axis. Q-Q plots are often arced, or "S" shaped, indicating that one of the distributions is more skewed than the other, or that one of the distributions has heavier tails  than the other.  
+
+Let's upload some experimental data and perform qualitative assessments with histograms and qqplots.
+(example from http://ligarto.org/rdiaz)^license^
+
+^license^: This work is Copyright, ©, 2014-2021, Ramon Diaz-Uriarte, and is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License: http://creativecommons.org/licenses/by-sa/4.0/.
+
+Open the file "AnAge_birds_reptiles.txt". We observe the 
+
+```{r echo = FALSE}
+anage_a_r <- read.delim("C:/Users/BL.5060101/Dropbox/PC (2)/Documents/UAM 23-24/BM-2/Lesson3/Lesson-3-files/AnAge_birds_reptiles.txt", header = TRUE, sep ="\t")
+names(anage_a_r)[6] <- "MetabolicRate"
+names(anage_a_r)[7] <- "BodyMass"
+names(anage_a_r)[9] <- "Longevity"
+anage_a_r[8] <- NULL
+```
+Let's have a look to the data histograms:
+```{r, fig.height = 4, fig.width = 8, fig.align ='center'}
+
+ggplot(anage_a_r, aes(Longevity, fill = Class)) + 
+  facet_wrap(~ Class) + 
+  geom_histogram(aes(y = ..count..), binwidth = 1)
+
+#They seem to have deviations from normality. If we take logarithms
+anage_a_r$logLongevity <- log(anage_a_r$Longevity)
+
+ggplot(anage_a_r,aes(logLongevity,fill = Class)) + 
+  facet_wrap(~Class) +
+  geom_histogram(aes(y = ..count..), binwidth = 0.1)
+
+```
+
+We can plot the qq plots before transforming and after
+```{r echo = TRUE, fig.height = 6, fig.width = 8, fig.align ='center'}
+par(mfrow = c(2,2))
+anage_r <- subset(anage_a_r,anage_a_r$Class=="Reptilia")
+anage_a <- subset(anage_a_r,anage_a_r$Class=="Aves")
+
+qqnorm(anage_a$Longevity, main = "Aves Longevity Normal Q-Q plot") 
+qqline(anage_a$Longevity)
+qqnorm(anage_r$Longevity, main = "Reptilia Longevity Normal Q-Q plot") 
+qqline(anage_r$Longevity)
+
+qqnorm(anage_a$logLongevity, main = "Aves logLongevity Normal Q-Q plot") 
+qqline(anage_a$logLongevity)
+qqnorm(anage_r$logLongevity, main = "Reptilia logLongevity Normal Q-Q plot") 
+qqline(anage_r$logLongevity)
+
+```
+In the Q-Q plots, I used the **"qqline"** function. This adds a line to the quantile-quantile plot, which passes through the probs quantiles, by default the first and third quartiles.
+
+Using the "qqPlot" function of car package, confident intervals can be visualized.
+```{r}
+par(mfrow = c(1,2))
+qqPlot(anage_a$Longevity, main = "Aves logLongevity Normal Q-Q plot")
+qqPlot(anage_a$logLongevity, main = "Aves logLongevity Normal Q-Q plot")
+```
+
+# Z-scores
+
+**Frequency distributions** can be used to get an idea of the **probability of a score occurring**. For any distribution of scores we could, in theory, calculate the probability of obtaining a score of a certain size. Statisticians have identified several common distributions.
+
+For each one they have worked out mathematical formulae that specify idealized versions of these distributions (they are specified in terms of a curved line). These idealized distributions are known as **probability distributions** and from these distributions it is possible to calculate **the probability of getting particular scores** based on the frequencies with which a particular score occurs in a distribution with these common shapes. One of these ‘common’ distributions is the **normal distribution**.  
+The probability of scores occurring in a normal distribution with a mean of 0 and a standard deviation of 1 is $f(x)=e^{-x^2/2}/\sqrt{2\pi}$
+
+```{r, fig.height=3}
+par(mfrow = c(1,2))
+
+x <- rnorm(1000)
+y <- dnorm(x)
+y1 <- exp(-x^2/2)/sqrt(2*pi)
+
+plot(x,y, ylab = "pnorm", cex = 0.1)
+plot(x, y1, ylab = "f(x)", cex = 0.1)
+```
+Therefore, if we have any data that are shaped like a normal distribution, then if the **mean** and **standard deviation** are 0 and 1, respectively, we can use the **tables of probabilities for the normal distribution** to see how likely it is that a particular score will occur in the data.
+
+```{r out.width="50%", fig.caption ="Figure q", fig.align= "center", echo=FALSE}
+knitr::include_graphics("C:/Users/BL.5060101/OneDrive - UAM/UAM/ME/Images/z-score-02.png")
+```
+
+The obvious problem is that not all of the data we collect will have a mean of 0 and standard deviation of 1. However, **any data set can be converted into a data set that has a mean of 0 and a standard deviation of 1**. 
+
++ First, to centre the data around zero, we take each score (X) and subtract from it the mean of all scores. 
++ Then, we divide the resulting score by the standard deviation (s) to ensure the data have a standard deviation of 1.
++ The resulting scores are known as **z-scores** and, in equation form, the conversion that we’ve just described is:
+\[
+\makebox[\linewidth]{$z=\frac{\overline{X}-X}{s}$}
+\]
+
+Thus, the **normal distribution** and **z-scores** allow us to go a first step beyond our data in that **from a set of scores** we can calculate the **probability that a particular score will occur**. So, we can see whether scores of a certain size are likely or unlikely to occur in a distribution of a particular kind. 
+
+**Certain z-scores are particularly important**,  because their value cuts off certain important percentages of the distribution. **The first important value of z is 1.96** because this cuts off the **top 2.5% of the distribution**, and its counterpart at the opposite end (-1.96) cuts off the bottom 2.5% of the distribution. As such, taken together, this value cuts off 5% of scores, or, put another way, **95% of z-scores lie between -1.96 and 1.96**.
+
+To further understand that, let's assume that we want to check the area that ranges between the 5% and the 95% of the total area. That is checking the 5% in the lower tail of the distribution, and the 5% on the higher tail. We call it the lower and higher 5% quantiles. The area under PDF on the left from the red line is exactly 5% of the total area under the curve. It implies a probability of 5%. 
+
+```{r, echo= TRUE, fig.align='center', fig.height= 3, fig.width= 3, fig.align='center'}
+library(grid)
+s <- seq(-4, 4, by = 0.05)
+y <- dnorm(s)
+cdf <- pnorm(s)
+df <- data.frame(s,y)
+
+ggplot(df, aes(s,y)) + 
+  geom_point(size = 0.5) + 
+  ggtitle("PDF") + 
+  theme(axis.title = element_text(face = "plain", size = 12)) + 
+  geom_vline(xintercept = qnorm(0.975),
+             linetype = "dashed", 
+             colour = "red", 
+             linewidth = 1) + 
+  annotation_custom(grob = textGrob(label = "2.5% higher quantile", 
+                                    rot = 90, 
+                                    vjust = .25, 
+                                    gp = gpar(cex = 1)),
+                    ymin = 0.15, ymax = 0.3, 
+                    xmin = qnorm(0.99), xmax = qnorm(0.99)) + 
+  geom_vline(xintercept = qnorm(0.025),
+             linetype = "dashed", 
+             colour = "red", 
+             linewidth = 1) +
+  annotation_custom(grob = textGrob(label = "2.5% lower quantile",
+                                    rot = 90,
+                                    vjust = .25, gp = gpar(cex = 1)),
+                    ymin = 0.15,ymax = 0.3, 
+                    xmin = qnorm(0.01), xmax = qnorm(0.01)) 
+
+
+```
+The red lines lay on the qnorm(0.025) and qnorm(0.975) values for the left and right, respectively, with (x = -1.645 and x = 1.645). We can check this number in the CDF
+
+```{r, echo= TRUE, fig.align='center', fig.height= 3, fig.width= 3, fig.align='center'}
+ggplot(df,aes(s,cdf)) + 
+  geom_point(size = 0.5) + 
+  ggtitle("CDF") + 
+  theme(axis.title = element_text(face = "plain", size = 12)) + 
+  geom_hline(yintercept = 0.975,
+             linetype="dashed",
+             colour = "red", 
+             size=1) + 
+  annotation_custom(grob = textGrob(label = "2.5% higher quantile", 
+                                    vjust = 0, gp = gpar(cex = 1)),
+                    ymin = 1,ymax = 1, 
+                    xmin = -1, xmax = -1) + 
+  geom_hline(yintercept = 0.025,linetype = "dashed", colour = "red", size = 1) +
+  annotation_custom(grob = textGrob(label = "2.5% lower quantile",
+                                    hjust = 0.15, gp = gpar(cex = 1)),
+                    ymin = 0.025, ymax = 0.025, 
+                    xmin = -1, xmax = -1)
+
+```
+
+
+# Standard error, standard deviation and CI  
+
+Different samples give rise to different values of the mean, and we can use the standard error to get some idea of the extent to which sample means differ. The **standard error of the mean (SE) is the standard deviation of sample means**. It could be calculated by:  
+
++ taking the difference between each sample mean and the overall mean, 
++ squaring these differences and adding them up, 
++ dividing by the number of samples.
++ Taking the square root of this value 
+
+We cannot collect hundreds of samples, so we rely on approximations of the SE. Luckily for us, we know that as samples get large (usually defined as greater than 30), the sampling distribution has a normal distribution with a mean equal to the population mean, and a standard deviation of:
+
+\[
+\makebox[\linewidth]{$\sigma _x=\frac{s}{\sqrt{N}}$}
+\]
+
+A different approach to assessing the accuracy of the sample mean (as an estimate of the mean in the population) is to **calculate boundaries within which we believe the true value of the mean will fall**. Such boundaries are called **confidence intervals**. The basic idea behind confidence intervals is to construct a range of values within which we think the population value falls.
+
+The following text and explanation is partly inspired form the book *"Discovering statistics using R" by Z. Field, A. Field and J. Miles"*.
+
+
+# Definition of confident intervals
+We’re interested in using the sample mean as an estimate of the value in the population. We have seen that different samples will give rise to different values of the mean, and we can use the standard error to get some idea of the extent to which sample means differ. A different approach to assessing the accuracy of the sample mean as an estimate of the mean in the population is to calculate **boundaries within which we believe the true value of the mean will fall**. Such boundaries are called **confidence intervals**. The basic idea behind confidence intervals is to construct a range of values within which we think the population value falls.
+
+
+# Example
+
+**Example using Rcmdr**: We will know create an example using  the *TeachingDemo plugin*. You moght need to install the "Rcmdr" package and the mentioned plugin. We will start with an example in which we are supposed to know the *true mean* of an event, which is normally not known. Imagine we know for sure that, on average, those men living in the Community of Madrid (CM) that have had a heart attack in their lives, had their first heart problems at the age of 75, with a SD of 8 years. So the true mean is in this example, 75. We now imagine that we take surveys on men living in Madrid, using samples of 25 individuals. For example, we take 25 individuals leaving in one specific district of the city. We ask them when they had they first heart problem, and the mean value, on this specific sample, is 77. It is not 75, but it is close. We can repeat this on, for example, 100 districts/villages in the CM. Go to **Rcmdr -> Demos -> CI of the mean** and generate a dataset with the mentioned characteristics. If you set the "confident level" to 0.95, you should obtain something *similar* to the figure below.
+
+```{r fig.cap = "", fig.align= "center"}
+knitr::include_graphics("C:/Users/BL.5060101/Dropbox/PC (2)/Documents/UAM 23-24/BM-2/Lesson2/CI.pdf")
+```
+For each sample surveyed, we have a mean value, and a corresponding boundary. Observe that there is a black vertical line on the "true mean" (75), and that most of the times the boundaries of each sample mean cover the true mean, but there are a few cases in which this is not true. In fact, **the boundaries surrounding each sample mean are constructed in a way that they will cover 95% of the times the true mean**. If we change the "confident level" to 0.99, then this means that the boundaries are constructed in a way that hey will cover 99% of the times the true mean. Go to  **Rcmdr -> Demos -> CI of the mean** and generate different conditions to understand the different effects of changing the parameters.
+
+To calculate the confidence interval, we need to know the limits within which 95% (or 99%) of means will fall. How do we calculate these limits?
+
+
+```{r, echo = FALSE, fig.align='center', fig.height= 3, fig.width= 3, fig.align='center' }
+  ggplot(df,aes(s,y)) + 
+  geom_point(size=0.5) +
+  ggtitle("PDF") + 
+  theme(axis.title = element_text(face = "plain", size = 12)) + 
+  geom_vline(xintercept=qnorm(0.975),
+             linetype="dashed", 
+             colour = "red",
+             size = 1) + 
+  annotation_custom(grob = textGrob(label = "2.5% higher quantile",rot=90, 
+                                    vjust = .25, gp = gpar(cex = 1)),
+                    ymin = 0.15,
+                    ymax = 0.3, 
+                    xmin = qnorm(0.99), 
+                    xmax = qnorm(0.99)) + 
+   annotation_custom(grob = textGrob(label = "z=1.96", 
+                                    hjust = .15, gp = gpar(cex = 1)),
+                    ymin = 0.0, 
+                    ymax = 0.0,
+                    xmin = 2, 
+                    xmax = 2) +
+  geom_vline(xintercept = qnorm(0.025),
+             linetype="dashed", 
+             colour = "red",
+             size = 1) +
+  annotation_custom(grob = textGrob(label = "2.5% lower quantile",rot=90,
+                                    vjust = .25, gp = gpar(cex = 1)),
+                    ymin = 0.15, 
+                    ymax = 0.3, 
+                    xmin = qnorm(0.01), 
+                    xmax = qnorm(0.01)) +
+  annotation_custom(grob = textGrob(label = "z=-1.96", 
+                                    hjust = .15, gp = gpar(cex = 1)),
+                    ymin = 0.0,
+                    ymax = 0.0, 
+                    xmin = -2, 
+                    xmax = -2) 
+                   
+```
+If our sample means were normally distributed with a mean of 0 and a standard error of 1, then the limits of our confidence interval, if set to 95%, we can calculate the value (z score) at which this probability is met with the qnorm function:
+
+```{r, echo = TRUE}
+qnorm(0.975)
+qnorm(0.025)
+
+```
+In a case were the mean is no zero, such as in the heart-problems age example, we could transform our data using:
+
+\[
+\makebox[\linewidth]{$z=\frac{\overline{X}-X}{s}$}
+\]
+
+And then set the limits (95%, 99% or whatever we want) that we are interested in,  
+
+$1.96 = \frac{\overline{X}-X}{s}$
+
+$-1.96=\frac{\overline{X}-X}{s}$
+
+And rearrange, to find:
+$1.96·s = \overline{X}-X$  
+$-1.96·s = \overline{X}-X$  
+
+If we substitute s by SE (we’re interested in the variability of sample means, not the variability in observations within the sample) and rearrange:
+\[
+\makebox[\linewidth]{$lower\ CI=\overline{X}-1.96SE$}
+\]
+\[
+\makebox[\linewidth]{$upper\ CI=\overline{X}+1.96SE$}
+\]
+
+Based on the plots and on the previous equations, we could say that we have 95% confidence that the true parameter (mean) lies between -1.96 and 1.96. Or that there is a 5% chance that it lies outside of the range from -1.96 to 1.96.
+
+The interpretation above highlights that:  
+
++ the confidence level tells us how probable is a considered event or what are the chances that the given parameter is inside a given range of values.
++ **alpha** or **significance level** is a probability. We can check it on the y-axis on the CDF plot. Alpha is one minus confidence level.
+
+For small sample sizes, instead of the z-distribution, the **t distribution** is used, with:
+
+$lower\ CI=\overline{X}-t_{n-1}SE$ 
+$upper\ CI=\overline{X}+t_{n-1}SE$
+
+
+The t-distribution is a family of probability distributions that change shape as the sample size gets bigger (when the sample is very big, it has the shape of a normal distribution). The "n-1" in the equations represents the **degrees of freedom**, indicating which of the t distributions is to be used. The degrees of freedom (df) are defined as the number of independent values or quantities which can be assigned to a statistical distribution. We will see how to calculate the df with the examples of different tests.
+
+
+# T-distributions and t-tests: comapring two means
+
+## **The t-distribution**
+(Example adapted from https://simon.cs.vt.edu/SoSci/converted/T-Dist/activity.html)
+
+Suppose a researcher at State University wants to know how satisfied students are with dormitory living. The researcher administers a survey where students answer questions on a scale of 1 to 7 with 1 representing very unsatisfied with dormitory living and 7 representing very satisfied with dormitory living. The researcher wants to know if students at State University have feelings about dormitory living that are not neutral.
+
+How can the researcher tell whether the State University students demonstrate an attitude that is not neutral? To answer this question, the researcher will **collect a sample of students** who live in dormitories and ask them how satisfied they are with dorm life. The researcher collects a sample because it is typically not economically feasible to survey all members of a population. **Having collected the sample, the researcher will then compute the mean level of satisfaction in the sample**. Chances are that the sample mean will not be exactly 4 (i.e., neutral). Therefore, the researcher has to determine if the sample mean deviates from 4 due to sampling error, or if the sample mean deviates from 4 because the population of dormitory students are not neutral about dorm life. **Let's assume that the researcher samples 15 students, that the sample mean is 5.0, and that the sample standard deviation is 1.936**.
+
+The question the researcher must answer is whether, **given sampling error, 5.0 is far enough away from 4 to conclude that college students at State University are not neutral about dorm living?**. To make this decision, the researcher must rely on the **concept of the sampling distribution of the mean for the population**. For this particular problem, the researcher needs to estimate the sampling distribution and the associated standard error (i.e., the standard deviation of the sampling distribution) when the sample size is 15 students.
+
+One way to **estimate the sampling distribution directly is to survey all dormitory students at the university** (i.e., sample the entire population) and create the **actual sampling distribution from all possible random samples of 15 students**. However, if the researcher samples the entire population, then there is no need to create the sampling distribution for N = 15. That's because the mean satisfaction rating from all the dormitory students would be the population mean and would inform the researcher exactly where the average attitude about dormitory living fell.
+
+Remember that cost and other technical problems typically preclude a researcher from sampling an entire population. Therefore, the researcher must somehow estimate the sampling distribution and standard error without surveying all members of the population. Fortunately, statistical research shows that when certain assumptions are met, the sampling distribution can be estimated. The shape of the sampling distribution for this type of problem is different from the normal distribution, especially when sample size is less than 30 subjects. This sampling distribution is given the special label of the "t-distribution". For practical purposes, **the shape of the t-distribution is identical to the normal distribution when sample size is large**. However, **when sample sizes are small (below 30 subjects), the shape of the t-distribution is flatter than that of the normal distribution, and the t-distribution has greater area under the tails**. The reason that the distribution is not normal is because the standard error is estimated using the sample standard deviation instead of the population standard deviation (because the population standard deviation is not known). This creates some uncertainty that is reflected in the t-distribution having greater area under the tails than the normal distribution, especially when the sample size is below 30 subjects.
+
+```{r out.width="50%", fig.caption ="Figure q", fig.align= "center", echo=FALSE}
+knitr::include_graphics("C:/Users/BL.5060101/OneDrive - UAM/UAM/ME/Images/t-distribution_primera.PNG")
+```
+As you can see, even when the sample size is 15 subjects, **it is hard to tell the two distributions apart with the naked eye**. Nonetheless, the differences may be important when comparing the area under each curve at a same standard score away from the mean. Recall that it is common practice to consider a result as statistically significant only if the probability of its occuring by chance is less than 5%. The gray areas under the curves and the percentages below the pictures represent the total area of the sampling distribution above a z-score of +1.96 and below a z-score of -1.96. The z-score values of +1.96 are the critical values for a two tailed hypothesis test when using the normal distribution to represent the sample distribution. That is, if the sampling distribution were shaped as a normal distribution, 2.5% of the scores are above +1.96 and 2.5% of the scores are below -1.96 (for a total area of 5% outside of these ranges).
+
+In contrast, for the t-distribution at sample size of 15, 3.7% of the scores are above +1.96 and 3.7% of the scores are below -1.96 (for a total area of 7.4% outside of these ranges). Therefore, **when using the t-distribution, the critical values of the .05 two-tailed test must be set higher, at +2.15**. This shows you that the main practical implication when using the t-distribution with sample sizes below 30 is that **the critical value (i.e. the cut-off value used to decide statistical significance) is higher when using the t-distribution than when using a sampling distribution found to be shaped like a normal distribution. This is another way of saying that small sample sizes yield less certain results, and so a stronger test is imposed before claiming that a result is significant.
+
+# **The t-test**
+The t-test is very versatile: it can be used to test whether a correlation coefficient is different from 0; it can also be used to test whether a regression coefficient, b, is different from 0. Importantly, it can also be used to **test whether two group means are different**. 
+
+There are, two different t-tests, and the one you use depends on whether the independent variable was manipulated using the same participants or different:  
+
++ **Independent-means t-test**: This test is used when there are two experimental conditions and different participants were assigned to each condition (this is sometimes called the independent-measures or independent-samples t-test).  
+
++ **Dependent-means t-test**: This test is used when there are two experimental conditions and the same participants took part in both conditions of the experiment (this test is sometimes referred to as the matched-pairs or paired-samples t-test).
+
+**Rationale of the t-test**
+
++ Two samples of data are collected and the sample means calculated. These means might differ by either a little or a lot.  
+
++ If the samples come from the same population, then we expect their means to be roughly equal. Although it is possible for their means to differ by chance alone, we would expect large differences between sample means to occur very infrequently. **Under the null hypothesis** we assume that the experimental manipulation has **no effect** on the participants: therefore, we expect the **sample means to be very similar**.  
+
++ We compare the difference between the sample means that we collected to the difference between the sample means that we would expect to obtain if there were no effect (i.e., if the null hypothesis were true). We use the standard error as a measure of the variability between sample means. If the standard error is small, then we expect most samples to have very similar means. When the standard error is large, large differences in sample means are more likely. **If the difference between the samples we have collected is larger than we would expect based on the standard error then we can assume one of two things:**
+
+1. There is no effect and sample means in our population fluctuate a lot and we have, by chance,collected two samples that are atypical of the population from which they came.
+2. The two samples come from different populations but are typical of their respective parent population. In this scenario, the difference between samples represents a genuine difference between the samples (and so the null hypothesis is incorrect).  
+
++ As the observed difference between the sample means gets larger, the more confident we become that the second explanation is correct (i.e., that the null hypothesis should be rejected). If the null hypothesis is incorrect, then we gain confidence that the two sample means differ because of the different experimental manipulation imposed on each sample.
+
+# The t-test equation
+We go back to the definition of a statistical test, and adapt it to the situation where we have two sample means and two population means:
+
+\[
+  \makebox[\linewidth]{$test=\frac{variance\ explained\ by\ the\ model}{variance\ not\ explained\ by\ the\ model}=\frac{effect}{error}=\frac{(\overline{X_1}-\overline{X_2})-(\mu _1-\mu _2)}{\ estimate\ of\ the\ SE}$}
+\]
+This hypothesis when performing an independent t-test is often stated as $\mu _1 - \mu _2=0$, where $\mu _1$ refers to the mean of the first sample, and $\mu _2$ refers to the mean of the second sample. The alternative hypothesis states that the two samples come from different populations for the variable of interest, and can be stated as $\mu _1 - \mu _2 \neq 0$ (for the two-tailed test) or $\mu _1 - \mu _2$ is greater than zero (for the one-tailed test) or $\mu _1 - \mu _2$ is less than zero (for the one-tailed test in the other direction).
+
+The graphic below shows the logic of creating the **sampling distribution for two independent samples**. The top of the graphic shows the population frequency distribution for two populations that are differentiated by the independent variable (you can recall the weight measurements between male or females). For each of these two populations we select sample sizes, referred to as n1 and n2. Then a sampling distribution of the mean is generated for each population. To create a single sampling distribution, known as the sampling distribution of the differences between the means, all possible deviations between population 1 means and population 2 means are computed. These deviations are then plotted. The bottom of the graphic shows the sampling distribution of the differences between the means.
+
+
+```{r out.width="50%", fig.caption ="Figure q", fig.align= "center", echo=FALSE}
+knitr::include_graphics("C:/Users/BL.5060101/OneDrive - UAM/UAM/ME/Images/t-distribution.PNG")
+```
+It is important to recognize the **the mean for the sampling distribution of the mean is zero when the null hypothesis is true**. That's because both populations have the same mean, which also means that both sampling distributions will have the same mean, therefore, the average deviation between the means will be zero. **The sampling distribution for the difference between the means is also a t-distribution**. Further, the standard deviation (i.e., the standard error) of the sampling distribution of the difference between the means must be estimated because the decision to reject the null hypothesis is based on **how many standard error units the observed difference in the sample means is from zero**. Fortunately, this standard error can be estimated. Because we are dealing with two samples this standard error is now called the standard error of the difference instead of the standard error of the mean. The formula for the standard error of the difference is:
+
+\[
+  \makebox[\linewidth]{$SE\ of \ samplig \ distribution \ differences=\sqrt{\frac{s_{1}^2}{N_1}+\frac{s_{2}^2}{N_2}}$}
+\]
+
+Then we get: 
+
+\[
+  \makebox[\linewidth]{$t=\frac{\overline{X_1}-\overline{X_2}}{\sqrt{\frac{s_{1}^2}{N_1}+\frac{s_{2}^2}{N_2}}}$}
+\]
+
+When the sample sizes are equal.
