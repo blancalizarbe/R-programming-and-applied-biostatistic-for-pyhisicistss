@@ -1,0 +1,380 @@
+---
+title: "Chapter 3: More about T-tests and non-parametric procedures"
+author: "Blanca Lizarbe, blanca.lizarbe@uam.es"
+output:
+   bookdown::pdf_document2: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(Rcmdr)
+library(car)
+library(RcmdrMisc)
+library(ggplot2)
+library(stats4)
+library(knitr)
+```
+# Assumptions of t-tests 
+
+T-tests are **parametric procedures** based on the normal distribution. They assume:   
+
++ The sampling distribution is normally distributed. In a dependent t-test (a two-times measure of a sample), this means that the sampling distribution of the differences between scores should be normal, not the scores themselves.    
+
++ Data are measured at least at the *interval level*.  
+
+The independent t-test, because it is used to test different groups of people, also assumes:  
+
++ Scores in different treatment conditions are independent (because they come from different people).    
++ Homogeneity of variance – well, at least in theory we assume equal variances.
+
+## Population variance and sample variance and degrees of freedom (df), .
+
++ The **variance** defines a measure of the spread or dispersion within a set of data. There are two types: the population variance, usually denoted by $\sigma^2$ and the sample variance is usually denoted by $s^2$.
++ The population variance is the variance of the population. To calculate the population variance, use the formula 
+\[
+  \makebox[\linewidth]{$\sigma^2 =\frac{1}{N}\sum_{i=1}^N(x_i-\mu)^2$}
+\]
+Where N is the size of the population $x_1, x_2...x_N$ of mean $\mu$. The population standard deviation is the positive square root of the variance.
++ Usually we only have a sample, the sample variance is the variance of this sample. Given a sample of data of size $n$, the variance is calculated:
+\[
+  \makebox[\linewidth]{$s^2 =\frac{1}{n-1}\sum_{i=1}^n(x_i-\overline x)^2$}
+\]
+where n is the number of observations obtained in the sample, $x_1, x_2,...x_n$ are the obtained observations and $\overline x$ is the sample mean. 
++ Degrees of freedom refers to the **number of observations that are free to vary**   
++ are essential for assessing the importance and the validity of the null hypothesis. 
+
+**Example**:  
+
++ If we take a sample of **4 observations** (8, 9, 11, 12) from a population, then these four scores are free to vary in any way (they can be any value, there no *a priori* restrictions).  
+
++ If we then use this sample of four observations to calculate the **standard deviation of the population**, we have to use **the mean of the sample as an estimate of the population’s mean**. Thus we hold **one parameter constant**.  
+
++ With this parameter fixed (mean = 10), can all four scores from our sample vary? The answer is "NO", because **to keep the mean constant** only three values are free to vary.  
+
++ **If we hold one parameter constant then the degrees of freedom must be one less than the sample size**. This fact explains why when we use a sample to estimate the standard deviation of a population, we have to divide the sums of squares by N-1 rather than N alone.  
+
+> The fact that the degrees of freedom of a sample are "n-1" is the reason why the variance of a sample ($s^2$) is calculated as $s^2=\frac{\sum_{i=1}^{n}(x_{i}-\overline{x})}{n-1}$ (with n-1 in the denominator). On the contrary, **to calculate the SE of the mean, we divide only by n**. 
+This is based on the following: from central limit theorem, we know that the **sampling distribution** (the frequency distribuition of sample means) is normal, with a mean equal to the population mean and a standard deviation of $\sigma = \frac{s}{sqrt{N}}$
+
+
+## Variances and df on the tests
+
++ Equal Variance (or Pooled) T-Test
+
+We saw that for equal sample sizes and variances: 
+\[
+  \makebox[\linewidth]{$t=\frac{\overline{X_1}-\overline{X_2}}{\sqrt{\frac{s_{1}^2}{N_1}+\frac{s_{2}^2}{N_2}}}$}
+\]
+
+And the degrees of freedom are: $N_1-1+N_2-1=N_1+N_2-2$
+
+If the number of samples in each group is not the same, we use the **pooled variance estimate t-test**, which takes account of the difference in sample size by weighting the variance of each sample:
+\[
+\makebox[\linewidth]{$s_{p}^2=\frac{(n_{1}-1)s_{1}^2+(n_{2}-1)s_{2}^2}{n_{1}+n_{2}-2}$}
+\]
+
+Which is simply a *weighted average* in which each variance is multiplied (weighted) by its **df**, and then divided by the sum of weights (or sum of the two degrees of freedom).
+
++ Unequal variance 
+
+The unequal variance t-test is used when the number of samples in each group is different, and the variance of the two data sets is also different. This test is also called the **Welch's t-test**. The following formula is used for calculating t-value:
+\[
+\makebox[\linewidth]{$t=\frac{mean_1-mean_2}{\sqrt{\frac{var_1}{n_1} + \frac{var_2}{n_2}}}$}
+\]
+
+Additionally, the Welch uses a correction which adjusts the degrees of freedom based on the homogeneity of variance, so rather than N1+N2-2 degrees of freedom we would have a smaller value (and not integer) degrees of freedom. This has had the effect of changing the p-value. When the sample sizes are equal, the adjustment will not make very much difference.
+
+\[
+\makebox[\linewidth]{$df=\frac{(\frac{var_1^2}{n_1}+\frac{var_2^2}{n_2})^2}{\frac{(\frac{var_1^2}{n_1})^2}{n_1-1}+\frac{(\frac{var_2^2}{n_2})^2}{n_2-1}}$}
+\]
+
+## CI of a t-test 
+
+If we remember the definition of **CI on a t-distribution**, which came from the following reasoning: 
++ Imagine we sample 100 samples of certain scores and obtain their mean values.
++ Sample means of 100 random samples are normally distributed.
++ We can, via z-transformation, convert the normally distributed sample means to a standard normal
++ We can calculate the z-scores that contain 95% (or 99% or whatever) of the probability value (area below the **dnorm** curve)(The CI)
++ If, for one sample, we obtain such a score that falls outside this range, we can reject the null hypothesis 
++ To calculate the CI of the difference between means, the null hypothesis would be that both populations means are equal, thus their difference is zero. To reject the null hypothesis is linked to obtaining such score that does not contain 0.
++ for small sample sizes we use t-distributions instead of normal distributions.  
+
+Mathematically:
+
+\[
+\makebox[\linewidth]{$CI_H=\overline{X}+t_{n-1, \alpha/2}SE$}
+\]
+
+\[
+\makebox[\linewidth]{$CI_L=\overline{X}-t_{n-1,\alpha /2}SE$}
+\]
+Which leads to.
+
+\[
+\makebox[\linewidth]{$CI=\overline{X}\pm t_{n-1,\alpha /2}SE$}
+\]
+\[
+\makebox[\linewidth]{$CI=(\overline{X_1}-\overline{X_2})\pm t_{n-1, \alpha /2}SE(\overline{X_1}-\overline{X_2})$}
+\]
+
+
+> Calculating and drwing the **CI of the differences of the mean**
+
+When the variances in the population are similar, the standard error (SE) of the difference in sample means is the pooled estimate of the common standard deviation (Sp), computed as the weighted average of the standard deviations in the samples, i.e:
+
+\[
+\makebox[\linewidth]{$SE(\overline{X_1}-\overline{X_2})=\sqrt{\frac{1}{n_1}+\frac{1}{n_2}}S_p$}
+\]
+and
+\[
+\makebox[\linewidth]{$Sp=\sqrt{\frac{(n_{1}-1)s_{1}^2+(n_{2}-1)s_{2}^2}{n_{1}+n_{2}-2}}$}
+\]
+
+For the Welch approximation (unequal variances), 
+\[
+\makebox[\linewidth]{$SE=\sqrt{\frac{var_1^2}{n_1} + \frac{var_2^2}{n_2}}$}
+\]
+
+Let's calculate them using the "P53" data file that we used in Chapter 3 (from https://github.com/rdiaz02)^license^ where we assessed if the value of p53 from two different samples, with cancer or not, were different.
+
+^license^: This work is Copyright, ©, 2014-2021, Ramon Diaz-Uriarte, and is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License: http://creativecommons.org/licenses/by-sa/4.0/.
+
+```{r create_p53, echo = TRUE, results='hide'}
+set.seed(1)
+dp53 <- data.frame(p53 = round(rnorm(23, c(rep(2, 13), rep(2.8, 10))), 3), 
+                   pten = round(c(rlnorm(13, 1), rlnorm(10, 1.35)), 3),
+                   brca1 = round(rnorm(23, c(rep(2, 13), rep(5.8, 10))), 3), 
+                   brca2 = round(c(rep(c(1, 2, 3), length.out = 13),
+                       rep(c(2, 3, 4), length.out = 10))),
+                   cond = rep(c("Cancer", "NC"), c(13, 10)), 
+                   id = replicate(23, paste(sample(letters, 10), 
+                                            collapse = "")))
+```
+
+Let's assess the t-test of the differences of sample means, first for *p53*. We will perform both the Welch t-test (which assumes unequal variances) and the "standard" t-test.
+
+```{r, echo = TRUE}
+(model.t1 <- t.test(p53 ~ cond,dp53))
+
+(model.t2 <- t.test(p53 ~ cond,dp53, var.equal=TRUE))
+```
+In both cases p < 0.05 and CI do not cross the "zero" value. T is slightly bigger in the non-welch approximation, which is on agreement with smaller p. Let's see how the previous CI, SE and t values are is calculated in both types of t-tests, and how to plot CI and interpret the graphs.  
+
+In our P53 example, we have:
+```{r p53 CI, echo = TRUE}
+# Equal variances approximation
+mean_C <- model.t1$estimate[[1]]
+mean_NC <- model.t1$estimate[[2]]
+
+SD_C <- sd(dp53$p53[dp53$cond == "Cancer"])
+SD_NC <- sd(dp53$p53[dp53$cond == "NC"])
+
+n_C <- length(dp53$p53[dp53$cond == "Cancer"])
+n_NC <- length(dp53$p53[dp53$cond == "NC"])
+
+# following the pooled variance estimation fromula
+diff_mean <- mean_C - mean_NC
+S_p_num = ((n_C-1)*(SD_C^2))+((n_NC-1)*(SD_NC^2))
+S_p_denom = n_C+n_NC-2
+S_p = S_p_num/S_p_denom
+
+SE_diff = sqrt(S_p/n_C+S_p/n_NC)
+t1 <- diff_mean/SE_diff
+
+#for df = 21, a 95% CI we look at the tables and t = 2.08
+CI_L = diff_mean + 2.08*SE_diff
+CI_H = diff_mean - 2.08*SE_diff
+
+results_PV <- cbind(diff_mean, SE_diff, t1, CI_L, CI_H)
+
+
+#The Welch approximation
+v_C <- var(dp53$p53[dp53$cond == "Cancer"])
+v_NC <- var(dp53$p53[dp53$cond == "NC"])
+SE_welch <- sqrt(v_C/n_C+v_NC/n_NC)
+tw <- diff_mean/SE_welch
+
+#for df=17, a 95% CI we look at the tables and t = 2.110
+CI_L_welch = diff_mean + 2.08*SE_welch
+CI_H_welch = diff_mean - 2.08*SE_welch
+results_W <- cbind(diff_mean, SE_welch,tw, CI_L_welch, CI_H_welch)
+
+#together
+results <- rbind(results_PV,results_W)
+kable(results)
+```
+
+We thus can summarize that
+```{r}
+CI_W <- c(-1.71,-0.063)   
+CI_PV <- c(-1.67,-0.036)    
+CI_tw <- c(-1.71,-0.089)   
+CI_tPV <- c(-1.676,-0.119)   
+```
+
+Let's plot the CI, first for p53
+```{r, fig.align='center', fig.height=4, fig.width=4}
+
+df <- data.frame(welch = CI_W, pooled = CI_PV)
+df_values <- data.frame(names = c("1", "2"),
+                        mean_diff = c(diff_mean, diff_mean), 
+                        confint_W = CI_W, confint_PV = CI_PV)
+
+yaxis_df <- as.factor(c("Welch","Pooled variance"))
+
+plot(df_values$mean_diff, yaxis_df, 
+     xlim = c(-2,1), ylim = c(0,3),
+     xlab = "mean differences", 
+     ylab = "Type of calculation",
+     yaxp = c(0,3,3))
+
+arrows(x0 = df$welch[1], y0 = 1, 
+       x1 = df$welch[2], y1 = 1, 
+       code = 3, col = "red", lwd = 2)
+arrows(x0 = df$pooled[1], y0 = 2, 
+       x1 = df$pooled[2], y1 = 2, 
+       code = 3, col = "red", lwd = 2)
+abline(v = 0, lwd = 2, lty = 2)
+```
+
+# Effect sizes and power of a test  
+
+## Effect sizes
+
+**How important are the effects of our comparisons/measurements? just because a test statistic is significant doesn’t mean that the effect it measures is meaningful or important**. The solution to this criticism is to **measure the size of the effect that we’re testing in a standardized way**. When we measure the size of an effect (be that an experimental manipulation or the strength of a relationship between variables) it is known as an **effect size**. 
+> An effect size is simply an objective and (usually) standardized measure of the magnitude of observed effect. Standardized means that we can compare effect sizes across different studies that have measured different variables, or have used different scales of measurement.
+
+Many measures of effect size have been proposed, the most common of which are Cohen’s *d*, Pearson’s correlation coefficient *r* and the *odds ratio* (for ordinal data).
+
+For the independent samples T-test, Cohen's *d* is determined by calculating the mean difference between your two groups, and then dividing the result by the pooled standard deviation.
+
++ Cohen's $d = \frac{(Mean_1 - Mean_2)}{SD_{pooled}}$, where: $SD_{pooled} = \sqrt{\frac{SD_1^2 + SD_2^2}{2}}$
+
+
++ Pearson's $r=\sqrt{\frac{t^2}{t^2+df}}$,
+
+Many of you will be familiar with the correlation coefficient r as a measure of the strength of relationship between two variables; however, it is also a very versatile measure of the strength of an experimental measure. The *r* coefficient is not linear, which means that an effect r = 0.6 is not the double of an effect size r = 0.3. Typically, the following ranges are accepted:
+
++ r = .10 (small effect): In this case the effect explains 1% of the total variance.
++ r = .30 (medium effect): The effect accounts for 9% of the total variance.
++ r = .50 (large effect): The effect accounts for 25% of the variance.
+
+## Power of a test  
+
+How likely we are to detect a difference that really exists (power) depends on:  
+
++ The threshold we use for saying “the means differ” (alpha level, or Type I error).
++ The sample size.
++ The size of the effect (difference in means).
++ The standard deviation.
+
+Power = Pr(reject H0|H1 is true)
+
+```{r, echo = FALSE, out.width = "55%", fig.capt = "Figure 2", fig.align= "center"}
+knitr::include_graphics("C:/Users/BL.5060101/OneDrive - UAM/UAM 22-23/MEC/Images/Power of a test.jpg")
+```
+
+(Image from *Nicholas R. Wheeler et al. IEEE PVSC 40, 2014)
+
+“Teaching demos: Power of a test” (*from the RcmdrPlugin.TeachingDemos*).
+
+# Non-parametric tests
+
+A **parametric test** is one that requires data from one of the large catalogue of distributions that statisticians have described, and for data to be parametric certain assumptions must be true. If you use a parametric test when your data are not parametric then the results are likely to be inaccurate. 
+
+**Non-parametric** or (distribution-free) tests are sometimes known as assumption-free tests because they make fewer assumptions about the type of data on which they can be used. **Most of these tests work on the principle of ranking the data**, which means **replacing data with the corresponding order statistics**; finding the lowest score and giving it a rank of 1, then finding the next highest score and giving it a rank of 2, and so on. **This process results in high scores being represented by large ranks, and low scores being represented by small ranks**. The analysis is then carried out on the ranks, using a statistical test. 
+
+
+## Wilcoxon rank-sum test
+
+Let's use it on an example from the book "Discover statistic using R" by Z. Field, A. Field and J. Miles.
+
+```{r, echo = TRUE}
+df <- data.frame(participant = c(seq(1,10,1), seq(11,20,1)), 
+                 Drug = c(rep("Ecstasy",10),rep("Alcohol",10)), 
+                 BDI = c(28,35,35,24,39,32,27,29,36,35,5,6,30,8,9,7,6,17,3,10))
+```
+We will first explore our data
+```{r, echo = TRUE, fig.height = 3, fig.width = 4, fig.align='center'}
+ggplot(df, aes(BDI)) +
+  geom_histogram(aes(y = after_stat(count)), colour = "grey" , binwidth = 2) + 
+  facet_grid(~Drug)
+
+```
+
+Then, proceed as follows:  
+
+1. We arrange the data frame by "BDI" scores, in ascending order:
+```{r, echo = TRUE}
+require(knitr)
+df_s <- df[order(df$BDI),]
+rownames(df_s) <- NULL
+kable(df_s[,])
+```
+2. Assign the corresponding ranks. Note: if two (or more) scores are equal (which are called "ties"), calculate a "mean rank value" and assign it to all equal-scores values.
+```{r, echo = TRUE}
+df_s$rank=c(seq(1,20,1))
+df_s$rank[3] = 3.5
+df_s$rank[4] = 3.5
+df_s$rank[16] = df_s$rank[17] = df_s$rank[18] = 17
+kable(df_s)
+```
+3. Sum the rank values for each group
+```{r}
+rank_sums <- aggregate(df_s$rank, list(df_s$Drug), sum)
+kable(rank_sums)
+```
+We can observe that group Ecstasy shows a **much higher ranksum**  than the group Alcohol, indicating that the sample from the ecstasy group has much higher BDI values. We need to find a "statistic" that provides a standardized comparison between ranksums. To that extent, we need to take into account the number of subjects of the sample (otherwise, the larger the group is, the higher the ranksums are). We calculate a "mean rank" for each group, which consists in summing up all the ranks for each group, with $Rankmean = n*(n+1)/2$.
+
+```{r}
+rank_mean <- 10*11/2
+```
+
+We define the statistic "W" as:
+
+$W = rank_{sum}-rank_{mean}$  
+
+Thus, for each group:
+
+$W_1=59-55 = 4$
+$W_2=151-55 = 96$
+
+Typically, we take the smallest of these values to be our test statistic, therefore **the test statistic for the Wednesday data is W = 4**. However, which of the two values of W is reported by R, depends on which way around you input variables into the function.
+
+Once we know how to calculate a statistic, we need to know how to proceed to find a p-value. R has a function to calculate the W statistic and the associated p-value:
+
+```{r, echo = TRUE}
+wilcox.test(df_s$BDI ~ df_s$Drug, alternative = c("two.sided"), exact = NULL)
+```
+Thus, for the BDI score, the p-value is 0.000569. We could say that the type of drug did  significantly affected BDI depression levels the day after.
+
+## Calculation of the p-values from the W statistic.
+
+The following explanation is **ONLY ADDITIONAL: we will not cover it at class**. Yo can jump to the function "Wilcoxon test". There are two ways of calcualting the p-value of a W statistic:
+
++ The **exact approach** uses a Monte Carlo method to obtain the significance level. This basically involves creating lots of data sets that match the sample, but instead of putting people into the correct groups, it puts them into a random group. Because the people were assigned to a group randomly, we know that the null hypothesis is true – so it calculates the value for W, based on these data in which the null hypothesis is true. It does this thousands of times, and looks at how often the difference that appears in the data when the null hypothesis is true is as large as the difference in your data. This method is great, because we don’t need to make any assumptions about the distribution, but as the sample size increases, the length of time it takes increases more and more. In addition, if you have ties in the data, you cannot use the exact method.
+
++ With **large sample sizes**, a normal approximation is used to calculate the p-value. The normal approximation doesn’t assume that the data are normal. Instead, it assumes that **the sampling distribution of the W statistic is normal** N(mu, sigma2), with $mu = n1(n1 + n2 +1)/2$ and  $sigma2 = n1n2(n1 + n2 +1)/12$ . This means that a **z transformation** can be applied,**a standard error can be computed** and hence a **p-value**.
+
+> The default in R is to use a normal approximation if the sample size is larger than 40; and if you have ties, you have to use a normal approximation whether you like it or not. If you use a normal approximation to calculate the p-value, you also have the option to use a continuity correction.The reason for the continuity correction is that we’re using a normal distribution, which is smooth, but a person can change in rank only by 1 (or 0.5, if there are ties), which is not smooth. Therefore, the p-value using the normal approximation is a little too small; the continuity correction attempts to rectify this problem but can make your p-value a little too high instead. The difference that the correction makes is pretty small – there is no consensus on the best thing to do. If you don’t specify, R will include the correction.
+
+
+
+## Wilcoxon matched-pairs test  
+
+In this case, the goal is to assess whether the within-pair differences are symmetrically distributed around zero. This means that this test can be used only with **interval scale data**.
+
+In a nutshell, this is what the test does: for each pair, it computes the difference of the two measures (thus, taking differences must make sense, and it does not for plane ordinal data, but it does for interval data). These differences (discarding the sign) are then ranked, and then the sum of the ranks of all the positive differences is computed and compared to the null distribution.
+
+You can try it with the *dmyc* data we used for the paired t-test (section 4 above). Remember that we had to reshape the data, so we can reuse one of the files (1,2,3). 
+
+
+## Effect size of a wilcoxon test
+
+We can calculate approximate effect sizes from the **p-value** of a wilcoxon test. Recall that R used a normal approximation to calculate the p-value; it did this via calculating a z for the data. It doesn’t report, or store, the z-value, but we can recover it from the p-value using the qnorm() function. We can then convert the z-value into an effect size estimate.
+
+The equation to convert a z-score into the effect size estimate, **r**, is as follows (from Rosenthal, 1991, p. 19):
+$r=\frac{z}{\sqrt{N}}$
+
+In which z is the z-score and N is the size of the study (i.e., the number of total observations) on which z is
+based.  
