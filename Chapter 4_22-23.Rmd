@@ -1,0 +1,386 @@
+---
+title: "Chapter 5: ANOVA and linear models"
+author: "Blanca Lizarbe, blanca.lizarbe@uam.es"
+output: pdf_document
+---
+## **Master Fisica de la Materia Condensada y Sistemas Biologicos, 2022-23**
+### **MÉTODOS EXPERIMENTALES Y COMPUTACIONALES EN BIOFÍSICA**
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(car)
+library(RcmdrMisc)
+library(ggplot2)
+library(multcomp)
+rm(list=ls()) 
+```
+(Adapted from Field, Field and Miles Discovering statistics using R; http://ligarto.org/rdiaz notes on R-basic stats^license^ and Dalgaard Introductory stadistics with R)
+
+^license^: This work is Copyright, ©, 2014-2021, Ramon Diaz-Uriarte, and is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License: http://creativecommons.org/licenses/by-sa/4.0/.
+
+## 1. ANOVA: An example
+
+Let's start by trying with an example. Generate Data about mitochondrial activity (mit) related to three different training regimes. (FYI, mitochondria are rod-shaped organelles that act as  power generators of the cell, converting oxygen and nutrients into adenosine triphosphate, (ATP)).
+
+```{r}
+set.seed(789)
+n1 <- 11
+n2 <- 12
+n3 <- 23
+m <- c(0, 0, 1.3)
+activ <- rnorm(n1 + n2 + n3) + rep(m, c(n1, n2, n3))
+activ <- activ - min(activ) + 0.2
+mit <- data.frame(activ = round(activ, 3),
+                  training = rep(c(1, 2, 3), c(n1, n2, n3)),
+                  id = 1:(n1 + n2 + n3))
+MIT <- write.table(mit, file = "MIT.TXT")
+dmit <- read.table("MIT.txt", header = TRUE)
+```
+In this data file, however, we used a number for “training”, which is misleading, because this is really a categorical variable. The first thing we must do, then, is fix that. (Convert numerical variables to factors”. We will want to label 1 as “Morning”, 2 as “Lunch”, and 3 as “Afternoon”, which are the times at which exercise was conducted. Use a new variable (e.g., ftraining), and plot the results.
+
+```{r,echo = TRUE, fig.align = 'center',fig.height = 3,fig.width = 5}
+dmit$ftraining <- factor(dmit$training, labels = c('Morning','Lunch','Afternoon'))
+Boxplot(activ ~ ftraining, data = dmit, id.method = "y")
+```
+We want to see if the specific time of exercise makes any difference. Conducting three t-tests is not the best way to go here: **our global null hypothesis is $\mu_{Morning} = \mu_{Lunch} = \mu_{Afternoon}$** and that is what ANOVA will allow us to test directly.
+
+```{r, echo = TRUE}
+AnovaModel.1 <- aov(activ ~ ftraining, data = dmit)
+summary(AnovaModel.1)
+```
+Can you interpret the output?  
+
++ The two rows; one of them is **the effect you are interested in *(ftraining)**  
++ The “Df” column: those are the degrees of freedom (three groups - 1 for “ftraining”)  
++ The two columns Sum Sq (Sum of Squares) and Mean Sq (Mean Squares).Sum of Squares is a quantity related to the variance. Mean Squares is obtained from the ratio of Sum Sq over Df. Then, **we use Mean Sq to compare how much variance there is between groups related to the variance within groups**: the F value is the ratio of Mean Sq of ftraining over Mean Sq of the residuals. The larger that F value, the more evidence there is of groups being different. We will see this in detail afterwards.
++ There is a p-value associated with that F value. In this case it is very small.
+
+
+
+## 2. Why ANOVA? Comparing more than two groups
+
+Before explaining how ANOVA works, it is worth mentioning **why we don’t simply carry out several t-tests to compare all combinations of groups that have been tested**. 
+
+we are interested in differences between the three groups. If we were to carry out t-tests on every pair of groups, then that would involve doing three separate tests: 
+
++ one to compare groups 1 and 2, 
++ one to compare groups 1 and 3, 
++ one to compare groups 2 and 3. 
+
+If each of these 3 t-tests uses a $\alpha=.05$ level of significance, then:  
++ **for each test** the **probability** of **falsely rejecting the null hypothesis** (the Type I error) is only **5%**.   
++ Therefore, the **probability of no Type I errors is .95 (95%) for each test**.  
++ If we assume that each test is independent (hence, we can multiply the probabilities) then **the overall probability of no Type I errors is 0.95 × 0.95 × 0.95 = .857**.  
++ Given that **the probability of no Type I errors is .857**, then we can calculate the **probability of making at least one Type I error by subtracting this number from 1**.  
++ So, the **probability of at least one Type I error is 1-0.857 = 0.143, or 14.3%**.  
+
+> Therefore, across this group of tests, the **probability of making a Type I error has increased from 5% to 14.3%**, a value greater than the criterion accepted by scientists. This error rate across statistical tests conducted on the same experimental data is known as the **familywise or experimentwise error rate (FWER)** . 
+
+The familywise error rate can be calculated using the following general equation:  
+
+$familywise\ error\ rate = 1-0.95^n$
+
+in which n is the number of tests carried out on the data. 
+
+For example, With 10 tests carried out, the familywise error rate is 1-0.9510^10 = 0.40, which means that there is a 40% chance of having made at least one Type I error. For this reason we use ANOVA rather than conducting lots of t-tests.
+
+## 3. Definition of the F test  
+
+When we perform an ANOVA t-test,  we test **the hypothesis that all group means are equal**. An ANOVA produces an **F-statistic** or F-ratio, which is similar to the t-statistic in that **it compares the amount of systematic variance in the data to the amount of unsystematic variance**. In other words, **F is the ratio of the model to its error**.
+
+ANOVA is an omnibus test, which means that **it tests for an overall effect**: so, it does not provide specific information about which groups were affected. 
+
+>In the MIT experiment (three different groups), the F-ratio tells us that the means of these three samples are not equal. There are several ways in which the means can differ.  
+
++ All three sample means are significantly different. 
++ Means of groups 1 and 2 are the same but group 3 has a significantly different mean from both of the other groups 
++ Groups 2 and 3 have similar means but group 1 has a significantly different mean
++ Groups 1 and 3 could have similar means but group 2 has a significantly different mean from both . 
+
+So, in an experiment, the F-ratio tells us only that the experimental manipulation has had some effect, but it doesn’t tell us specifically what the effect was.
+
+
+## 4. Theory behind ANOVA: calculating the F test.
+
+Let $x_{ij}$ denote the observation no. j in group i, so that $x_35$ is the fifth observation in group 3;$\overline x_i$ is the mean for group i, and $\overline x$. is the grand mean (average of all observations). We can decompose the observations as:
+
+\[
+  \makebox[\linewidth]{$x_{ij}=\overline x + (\overline x_i-\overline x) + (x_{ij}-\overline x_i)$}
+\]
+
+Where the term $(\overline x_i-\overline x)$ accounts for the deviation of a group in relation to the grand mean, and $(\overline x_{ij}-\overline x_i)$ to the difference between a measure and a mean group.
+
+The above equation can be summarized as
+
+\[
+  \makebox[\linewidth]{$X_{ij} = \mu + \alpha_i + \epsilon_{ij}$, $\epsilon_{ij} \approx  N(0, \sigma^2)$}
+\]
+
+In which the hypothesis that all the groups are the same implies that all $\alpha_i$ are zero. Notice that the error terms  $\epsilon_{ij}$ are assumed to be independent and have the same variance.
+
+Now consider the sums of squares of the underbraced terms, known as **variation within groups**
+
+\[
+  \makebox[\linewidth]{$SSD_W = \sum_{i} \sum_{j}(x_{ij}-\overline x_i)^2$}
+\]
+
+and **variation between groups**
+
+\[
+  \makebox[\linewidth]{$SSD_B = \sum_{i} \sum_{j}(\overline x_{i}-\overline x)^2= \sum_{i} n_i(\overline x_{i}-\overline x)^2$}
+\]
+
+It is possible to prove that:
+
+\[
+  \makebox[\linewidth]{$SSD_W + SSD_B=SSD_T=\sum_{i} \sum_{j}(x_{ij}-\overline x)^2$}
+\]
+
+On the other hand, we can normalize the sums of squares by calculating the **mean squares**:
+
+\[
+  \makebox[\linewidth]{$MS_w=\frac{SSD_W}{N-k}$}
+\]
+\[
+  \makebox[\linewidth]{$MS_B=\frac{SSD_B}{k-1}$}
+\]
+
+$MS_W$ is the pooled variance obtained by combining the individual group variances, and thus an estimate of $\sigma^2$. In the absence of a true group effect, $MS_B$ will also be an estimate of $\sigma^2$, but **if there is a group effect, then the differences between group means and hence $MS_B$ will tend to be larger**. Thus, **a test for significant differences between the group means can be performed by comparing two variance estimates**. This is why the procedure is called **analysis of variance**, even though the objective is to compare the group means. 
+
+A formal test needs to account for the fact that random variation will cause some difference in the mean squares. You calculate:
+\[
+  \makebox[\linewidth]{$F=\frac{MS_B}{MS_w}$}
+\]
+so that F is ideally 1, but some variation around that value is expected. The distribution of F under the null hypothesis is an **F distribution with k-1 and N-k** degrees of freedom. You reject the hypothesis of identical
+means if F is larger than the 95% quantile in that F distribution (if the significance level is 5%). Notice that this test is one-sided; a very small F would occur if the group means were very similar, and that will of course
+not signify a difference between the groups. 
+
+
+
+## 5. The example again
+
+Let's calculate SSDB, SSDW, the corresponding mean squares and F ratio for the dmit data.
+
+```{r manual ANOVA, echo = TRUE}
+require(knitr)
+kable(dmit)
+SSDW.parameters <- aggregate(activ ~ ftraining, 
+                             data = dmit, 
+                             function(x) c(Mean = mean(x), 
+                                           sum.sq = sum((x - mean(x))^2),
+                                           n = sum(!is.na(x)))) 
+SSDW <- sum(SSDW.parameters$activ[,2])                                           
+overall.mean <- mean(dmit$activ)
+
+nt = sum(!is.na(dmit$activ))
+SSDB <-sum(SSDW.parameters$activ[,3]*(SSDW.parameters$activ[,1] - overall.mean)^2)
+
+MSW <- SSDW/(nt - 3)
+MSB <- SSDB/(3-1)
+F.ratio <- MSB/MSW
+
+(manual.ANOVA <- rbind(MSW, MSB, F.ratio))
+summary(AnovaModel.1)
+
+```
+> ANOVA in R. Simple analyses of variance can be performed in R using the function *lm*, which is also used for *regression analysis*. 
+
+> Introductory Statistics with R, by P. Dalgaard. Chapter 6, regression and correlation (p.109). We will cover the basics of **regression fitting**, wich will lead us to understand the **t-test as a regression**. 
+
+Let's try to perform the ANOVA analysis if the mitochondrial activity using the *lm* function. We need to calculate a model object using *lm* and extract the analysis of variance table with anova.
+
+```{r, echo=TRUE}
+model.lm <- lm(dmit$activ ~ dmit$ftraining)
+anova(model.lm)
+```
+We obtain exactly the same as with the *aov* function used above, In this output we have SSD_B and MS_B in the top line and SSDW and MSW in the second line. In statistics textbooks, the sums of squares are most often labelled “between groups” and “within groups”. Like most other statistical software, R uses slightly different labelling. Variation between groups is labelled by the name of the grouping factor (dmit$ftraining), and variation within groups is labelled as *Residuals*.
+
+
+
+## 6. Pairwise comparisons and multiple testing
+
+In our example, the small p-value leads us to reject the null hypothesis $\mu_{Morning} = \mu_{Lunch} = \mu_{Afternoon}$. Thus, there is strong evidence that all three means are not equal. But which one(s) is(are)
+different from the other(s)? Part of this information can be found in the *regression coefficients* of the *lm* approach. 
+> We can use the function *summary* to extract regression coefficients with standard errors and t-tests. These coefficients do not have their usual meaning as (the slope of a regression line) but have a special interpretation. First let's have a look at the output of *summary*:
+
+```{r}
+summary(model.lm)
+```
+The interpretation of the **estimates** (first column) is that the **intercept is the mean in the first group (morning), whereas the two others describe the difference between the corresponding group and the first one.**
+
+The contrasts used by default are the so-called **treatment contrasts**, in which the first group (morning in our case) is treated as a baseline, and the other groups are given relative to that. Specifically, the analysis is performed as a multiple regression analysis by introducing two **dummy variables**, which are 1 for observations in the relevant group and 0 elsewhere.
+
+
+Among the t tests in the table, we can find a test for the hypothesis that the first two groups have the same true mean (p = 0.782) and also whether the first and the third might be identical (p < 0.0.001) (rejected in this case). However, the comparison between the last two groups is not reported. This can be overcome by modifying the factor definition (see the help page for *relevel*), but that gets tedious when there are more than a few groups. 
+
+# Correcting for multiple testing
+
+If all groups are to be compared, we ought to **correct for multiple testing**, since **performing many tests will increase the probability of finding one of them to be significant; that is, the p-values tend to be exaggerated**.  
+
+Recall that **the type I error probability is the probability of rejecting H0 when it is true (false positives)**. The greater the number of contrasts performed, the greater the probability to make a type I error in any of them. There are several ways to generalize the concept of type I error probability for the case of the multiples of the tests. Below are two very common:
+
++ **Family wise error rate (FMWER)**: It is the probability of making a type I error in one or more of the tests performed. If the tests are independent of each other, it is calculated as $1 - (1 - alpha)^n$ where alpha is the level of significance set in each test and $n$ is the number of tests performed. 
+
++ **False Discovery Rate (FDR)**: It is the expected proportion of type I errors between all hypotheses null rejected (R). If V is the number of null hypotheses rejected without error ("true positive"), FDR = E(Q), where Q = V/R if R > 0 and Q = 0 if R = 0.
+
+Thus, **to reduce the "type I error"** (whatever de definition is used), a solution
+would be to adjust the significance level set for each test or, equivalently, correct the p-values obtained in the contrasts made (nominal p-values). In this way, we obtain the p-values adjusted, which will be the ones we use to finally resolve each contrast. The p-values adjustment is the most widespread option, and there are many methods to make this correction.  
+
++ If we choose to minimize the FWER, the simplest method is the **Bonferroni correction**, which consists in multiplying the nominal p-values by the number of tests to perform (m). This type of correction it is very conservative and tends to give rise to a higher number of false negatives than other corrections. Some less conservative modifications of this procedure are those proposed by **Sidak or
+Holms**, among others.  
+
++ If we want to minimize the FDR, we can apply the Benjamini & Hochberg correction which consists in ordering the m p-values obtained from smallest to largest and multiplying the p-value that occupies the position i times m=i. This correction allows to reduce the number of false positives without generating so many false
+negative as the Bonferroni correction, for this reason it is usually quite used.
+
+> In R, the functions called *pairwise.t.test* and *glht* compute all possible two-group comparisons with a spcecifc corrections for multiple testing.
+
+```{r, echo = TRUE}
+pairwise.t.test(dmit$activ,dmit$ftraining)
+```
+In the case of *glht* we need to upload the multcomp package:
+```{r, echo = TRUE, results = 'hide'}
+AnovaMIT <- aov(activ ~ ftraining, data=dmit)
+.Pairs <- glht(AnovaMIT, linfct = mcp(ftraining = "Tukey"))
+confint(.Pairs) # confidence intervals
+cld(.Pairs) # compact letter display
+old.oma <- par(oma=c(0,5,0,0)) # oma is for outer margin area
+plot(confint(.Pairs))
+par(old.oma) ## restore graphics windows settings
+```
+Look carefully at the plot above: for each difference (for each contrast), it shows the estimate and a 95% confidence interval around it. The plot title says **“95% familywise confidence interval”**, and that indicates that multiple testing correction has been used. Given how far two of the contrasts are from 0.0, it seems those are highly significant differences. Let’s go to the numerical output.
+
+We can also call for the numerical output of the ANova with corrections
+```{r}
+summary(.Pairs)
+```
+explicitly shows that we are using Tukey’s method and it shows the p-values of each
+contrast (each comparison), and it makes it clear that we are being reported adjusted p values. There is strong evidence of a difference between Afternoon and the other two levels, but no evidence of differences between Lunch and Morning.
+
+We can explicitly call for the Tukey multiple comparisons of means: 
+
+```{r}
+TukeyHSD(aov(activ ~ ftraining, data = dmit))
+```
+
+
+# More about FWER and FDR (formal)
+
+Table below shows a depiction of what we are concerned about, where the letters in each cell refer to the number of means tested that fall in each case.
+
+|                                |Null hypothesis not rejected| Null hypothesis rejected|
+|:------------------------------:|:--------------------------:|:-----------------------:|
+|Means do not differ ($H_0$ true)|  U                         |  V                      |          
+|Means do differ ($H_1$) true    |     T                      |S                        |
+
+In the mithocondrial example, U +V + T + S = 3 (3 is the number of hypothesis tests, it is not the number of means; in our case, both are three, but the table above reflects number of hypothesis, not tests). Procedures such as the one we used (Tukey) or Bonferroni or similar ones, try to control the probability that $V\ge 1$. They control what is called the *“**family-wise error rate*”** : provide mechanisms for ensuring that Pr(V) is below a number you specify (e.g., 0.05).
+
+
+In the FDR, we focus on **controlling the fraction of false positives**. The total number of null hypothesis we reject is V + S. The intuitive idea behind the control of the false discovery rate (FDR) is to bound (to set an upper limit to) to the ratio V/(V+S)
+
+One key difference is that the FDR can be kept reasonably low (say, 0.01) even when it is almost sure that $V\ge 1$. When could this happen? For instance, when we are conducting tens of thousands of hypothesis tests. Again, the FDR will control the fraction of false discoveries whereas the control of the family wise error rate (FWER) is emphasizing that V don’t become 1 or more.
+
+The FDR is usually employed in screening procedures, where we are willing to allow some false discoveries, because we are screening over thousands of hypothesis. The cost of requiring V = 0 would be to miss many discoveries. 
+
+**One example**: Suppose that you have measured the expression of 20000 genes in two sets of subjects, some with colon cancer and some without. Now, you can do the equivalent of 20000 t-tests. So you will get 20000 p-values, and you will want to adjust those 20000 tests for multiple testing (*when you screen 20000 genes, you are running 20000 times the experiment of the p-value and the null hypothesis. And remember the rules: for one true null hypothesis, the probability of finding a p-value < 0.05 is 0.05. Now imagine you do that 20000 times; you are almost certain to have many p-values < 0:05..*) How do you adjust for multiple testing in R? This is easily done with the *function p.adjust*. When you are applying FDR you often have a collection of p-values already. We will make a simple example up and will only use 4 p-values (not 20000) for the sake of simplicity. 
+
+> Suppose we have done a screening procedure, testing 4 genes. You get the p-values I show below. To use an FDR correction method we will use p.adjust with the method = “BH” argument (BH is one of several possible types of FDR correction). To show what happens, I have then combined the two, side by side, so you can see the original p-value and the FDR-adjusted one.
+
+```{r, echo = TRUE}
+p.values <- c(0.001, 0.01, 0.03, 0.05)
+adjusted.p.values <- p.adjust(p.values, method = "BH" )
+cbind(p.values, adjusted.p.values)
+```
+
+How do we interpret this? 
+For example, if we keep as “significant” all the genes with a p-value (not adjusted p-value) $\le 0.030$, the FDR (the expected proportion of false discoveries) will be 0.04 (the FDR-adjusted p-value for the gene with p of 0.03, note that the method "BH" specified under p.adjust ). Note that the FDR applies not just to comparisons between means or t-tests, but to any kind of test (comparing variances, correlations, etc).
+
+
+There are many reviews about multiple testing, FDR, etc. You might want to take a look at a three-page one by W. Noble, in Nature Biotechnology, 2009, 27: 1135–1136, “How does multiple testing work”.
+
+# 7. Two-way ANOVA
+
+One-way analysis of variance deals with one-way classifications of data. **It is also possible to analyze data that have two (or more) predictor variables**. We can go back to the MRI data, in which we had ADC values (a numeric variable), time-point measurements and experimental groups. For simplicity, we will only consider experimental groups 1 and 2, and time-points 1 and 2. 
+
++ We will test if ADC depends on the time measured, and on the experimental group.   
++ We need to take into account the potential **interaction** between time and group (if the effects of time on ADC depend on the experimental group)
+
+```{r,echo = TRUE}
+library(knitr)
+valores_test<- read.csv("C:/Users/BL.5060101/Dropbox/PC (2)/Documents/UAM/ME/valores.csv", sep=",")
+
+valores_glc <- valores_test[valores_test$Grupo == 1| valores_test$Grupo == 2,]
+valores_tglc <- valores_glc[valores_glc$Tiempo == 1| valores_glc$Tiempo == 2,]
+
+ADC_time_glucose <- data.frame(ADC = valores_tglc$ADC,
+                               Animal = valores_tglc$Animal,
+                               Group = valores_tglc$Grupo, 
+                               Time = valores_tglc$Tiempo, 
+                               Area = valores_tglc$Area)
+ADC_time_glucose_meanArea <- with(ADC_time_glucose, 
+                                  aggregate(ADC, 
+                                            by = list(Animal,Time,Group),
+                                            FUN="mean"))
+colnames(ADC_time_glucose_meanArea)<-c("Animal","Time","Group","ADC")
+kable(ADC_time_glucose_meanArea)
+```
+> What do we mean by interaction, in our MRI example?
+
+```{r, echo = TRUE, fig.align = 'center', fig.width = 3, fig.height = 3}
+#line charts for several groups 
+df <- ADC_time_glucose_meanArea
+df$fTime <- as.factor(df$Time)
+df$fGroup <- as.factor(df$Group)
+
+ggplot(df,
+       aes(fTime, ADC, colour = fGroup)) + 
+  stat_summary(fun = mean, 
+               geom = "point", 
+               aes(group = fGroup)) + 
+  stat_summary(fun = mean, 
+               geom = "line", 
+               aes(group = fGroup), 
+               linetype = "dashed") + 
+  stat_summary(fun.data = mean_cl_boot, 
+                    geom = "errorbar", 
+               linetype = "dashed",
+                    aes(group = fGroup),
+                    width = 0.2) + 
+  labs(x ="Time", y = "Mean ADC", 
+       colour = "Group") + 
+  ggtitle("ADC by time and group")
+```
+As we can see in the graph above, the effect of *Time* is different depending on the group investigated (more prominently between time 1 and time 2): this means that there is (potentially) an interaction between *time* and *group*. 
+
+We will now perform some tests on the data, considering differnt models: additve (no interaction) or with interaction.
+
+## 7.1 Additive model
+
+```{r}
+m1 <- lm(ADC ~ fTime + fGroup, data = df)
+anova(m1)
+```
+Now we can also have a look at the specific contrasts using *summary*.
+```{r}
+summary(m1)
+```
+## 7.2 Interaction model
+```{r}
+m2 <- lm(ADC ~ fTime * fGroup, data = df)
+anova(m2) 
+```
+And observe the summary.
+```{r}
+summary(m2)
+```
+We obtain approximately the same values as before (or similar), because the interaction was not that strong. Typically, it is advisable to start first with an interaction model and, if the interaction results weak, we than apply an additive model. We can represent our data to express the interaction:
+
+```{r, echo = FALSE}
+library(effects)
+library(HH)
+plot(allEffects(m2), 
+     ask = FALSE)
+with(df, 
+     interaction.plot(Time, Group, ADC, type = "b"))
+interaction2wt(ADC ~ Time + Group, data = df)
+```
