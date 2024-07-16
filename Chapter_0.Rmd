@@ -1,0 +1,394 @@
+---
+title: "**Master Fisica de la Materia Condensada y Sistemas Biologicos, 2023-24** MÉTODOS EXPERIMENTALES Y COMPUTACIONALES EN BIOFÍSICA R programming and applied statistics: Chapter 0: An introduction to R, interfaces and basic language"
+author: "Blanca Lizarbe, blanca.lizarbe@uam.es"
+date: "21-09-2023"
+output:
+     bookdown::pdf_document2: default
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(root.dir = 'C:/Users/BL.5060101/Dropbox/PC (2)/Documents/UAM 22-23/MEC')
+library(Rcmdr)
+library(car)
+library(RcmdrMisc)
+```
+***
+**R** is a free and open-source program that is worldwide used for statistical computing and graphs generation. In this file, you'll find:  
+
++ Some indications regarding its **installation**, 
++ A brief description of the **R interfaces**, 
++ An introduction to the **R language and architecture**:  
+
+   + 1. R-Speaking and R-answering^1^
+   + 2. Functions and Objects
+   + 3. Writing scripts
+   + 4. Data structure^2^
+   + 5. Some special functions^2^
+
+^1^based on: *https://www.danielnettle.org.uk/r-modelling/*
+
+^2^based on: *https://github.com/rdiaz02/R-bioinfo-intro This work is Copyright, ©, 2014-2021, Ramon Diaz-Uriarte, and is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License: http://creativecommons.org/licenses/by-sa/4.0/.*  
+
+
+# Instalation and interfaces
+
+You can download R from here: **https://www.r-project.org/**. There are many websites where you can find instructions on how to install it depending on your operative system. You can find very detailed instructions from my colleague R. Diaz Uriarte here: [**instructions**](https://github.com/rdiaz02/BM-1/blob/master/2021-2022/BM2-software-applied-stats.txt)
+. Please install R, Rstudio and Rcommander in your own laptop/computer at home. In class, we will work with computers where R is already installed. You can run R in Windows, Linux or Mac. Personally, I work with windows, and it works perfectly fine. If you **follow the instructions carefully**, the installation process should be straightforward. If you install it before going to class and have any doubts on the installation process, please write me an email.
+
+**R** is a software that offers a **console** where you can type and run codes. You can also create **external scripts** and call from the console:
+
+```{r out.width = "35%", fig.capt = "Figure 1", fig.align = "center", echo = FALSE}
+knitr::include_graphics("C:/Users/BL.5060101/OneDrive - UAM/UAM/ME/Images/R screenshot.png")
+```
+
+**Rstudio** is a software with a nice user interface from which you can send commands to R, edit the scripts, preview graphics, and see what is going on in the "work environment" (where information is stored). Rstudio is very convenient for creating documents (html, PDF, like the present document): it can be linked to "Rmarkdown", which is a tool that combines analysis and reporting on the same document:  
+
+```{r fig.capt = "Figure 3", fig.align= "center", out.width="55%", echo = FALSE}
+knitr::include_graphics("C:/Users/BL.5060101/OneDrive - UAM/UAM/ME/Images/RStudio screenshot.png")
+```
+
+Many many people around the world use R, and you can find very useful information regarding R commands and tools on the internet. If you have a specific doubt, you can use the on-line help of R, which gives very useful information on how to use the functions. Help is available directly for a given function, for instance, by typing in the console: **"help(sum)"** (and pressing enter). If you are working on the simple R console (not Rstudio) you'll be directed to a new internet window where the help page appears describing the main characteristics of your function. If you are working on R studio, you will see the help answer on a bottom-right subwindow. Alternatively, you can google *"How to sum in R"*, and in most of the cases you will find the solution. In the present chapter, we will provide some basic steps to get started with R.  
+
+**For more complete R-reports** (and some usefull links):  
+
+1. R for beginners:
++ https://cran.r-project.org/doc/contrib/Paradis-rdebuts_en.pdf
++ https://www.danielnettle.org.uk/r-modelling/
+
+2. A More complete compendium:
++ https://cran.r-project.org/doc/manuals/r-release/R-intro.pdf
+
+3. For Rmarkdowm:
++ https://rmarkdown.rstudio.com
++ https://www.rstudio.com/wp-content/uploads/2015/02/rmarkdown-cheatsheet.pdf
++ https://bookdown.org/yihui/rmarkdown-cookbook/install-latex.html
+
+
+
+# Introduction to R language
+
+## R-Speaking and R-answering
+The console is the place through which you can directly "speak" to R, by typing commands, one at a time, which R will execute when you press enter. Open Rstudio, go ahead to the console (can you find it?!) and type:"3+5", then press return.
+
+
+```{r, echo = TRUE}
+3 + 5
+```
+
+In this document, R’s answers here are going to be denoted with ##.
+R’s answer is [1] component long, and it can do simple addition. Now as well as adding numbers, R can hold objects in a workspace, and assign a value to a variable.  
+
+```{r, echo = TRUE}
+x <- 3 + 5
+```
+
+The first thing you see is that in the environment tab to your top-right, an object x appears, with the  value of 8. That means R current has ‘in its mental workspace’, object x. And once it is there, you can do anything to it you could do to a number. So for example try a few calculations. If you want R to report the current value of an object in its environment, then you just type the object’s name: "x"
+```{r, echo = TRUE}
+x
+```
+or 
+
+```{r, echo = TRUE}
+print(x)
+```
+You can also print by doing
+```{r, echo = TRUE}
+(x <- 3 + 5)
+```
+You can **override** previous assignments or **delete** them
+
+```{r, echo = TRUE}
+(x <- 33)
+x <- 11
+x
+x <- "Now x is a sentence"
+x
+rm(x)
+```
+
+
+**All numeric objects in R are vectors**. This means that they are not single numbers, but ordered series of numbers (our x so far is a vector of length 1). You make several numbers into a vector using the function c(), which stands for ‘combine’. 
+```{r, echo = TRUE}
+y <- c(2, 4, 16, 256)
+```
+
+If you want to ask for a specific component of the vector, you can ask R by: "y[2]".
+```{r, echo = TRUE}
+y[2]
+```
+Note also that you see a [1], before the 4 (and in the previous outputs). Why? Because the output of that operation is a vector of length 1, and R is showing its index. Here it does not help much, but it would if we were to print 30 numbers:
+
+```{r, echo = TRUE}
+1:30
+```
+
+
+And you can also change such value by assigning a new value:
+```{r, echo = TRUE}
+y[2] = 0
+```
+* **A little bit of attention: The tricky use of "=" in R. Difference between *assigning* and *equaling*.** Consider: y = 10. In R, we are not using ‘=’ in the same way it is used in a mathematical equation. The line y = 10 says assign the value on the right hand side (10) to the object on the left hand side (y). In R **"<-"** also means **assign**. You will see ‘<-’ a lot in other people’s code; for our purposes, ‘<-’ and ‘=’ will be synonymous. Because "=" means assign in R, then expressions like the following make perfect sense: y = y + 1
+Try it. Set y to 10, then assign y + 1 to y. The value of y should increase to 11. 
+If you need to use equals in the mathematical sense, you should use double equals**"=="**, also known as **checking equals**. For example:
+
+```{r, echo = TRUE}
+z <- c(2, 3, 5, 7)
+z == 3
+```
+You can directly define another object, w, that holds the values of whether each element of z is equal to 3 or not 
+```{r, echo = TRUE}
+w <- (z == 3)
+```
+Now look in your **environment window**. You now have another object, z. But note that whereas the object x is denoted ‘num’ (it’s a numeric vector), z is denoted ‘logi’, because it is a different type of vector called analogical vector (it consists of TRUEs and FALSEs).
+
+## Functions and Objects 
+
++ **Functions** are commands followed by () brackets, and they basically say to R, do the operation defined by the function to the objects listed in the brackets (these objects are called the arguments of the function). For example: **mean(y)**
+
+```{r, echo = TRUE}
+mean(y)
+```
+This means do the function arithmetic mean to the argument vector x. If you don’t say otherwise, R will return the outcome of doing the function to the console. But you might want the outcome stored in an object instead, as in:
+
+```{r, echo = TRUE}
+overall.mean = mean(y)
+```
+See now the object overall.mean appears in your environment to the right. This could be useful, for example if you want to know which of your data points in y lie below the mean.
+
+```{r, echo = TRUE}
+x <- c(2, 3, 5, 7)
+overall.mean = mean(x)
+which(x < overall.mean)
+```
+
+The first and second elements of x are below the mean. 
+
+* What would you do if you wanted to know which elements of x were equal to the mean? 
+
+* [**Here**](***) you can find a nice **List of R functions** that you might want to use during this course.
+
+
++ **Objects** are the things you perform functions on. In R, every object has a class. The class determines the kind of thing it is, and hence how any particular function can be applied to it. To find out the class of an object in your environment, use the **class()** function. (I assume you still have objects x and z in your environment from earlier)
+
+```{r, echo = TRUE}
+class(x)
+class(z)
+```
+
+R contains by default a series of functions grouped in what is called a **base package**. There are many other packages available that contain specific functions. Such packages need to be installed previously. We will install them when needed.  
+
+
+## Writing scripts
+
+If you are in Rstudio, go to File-> New File -> R script.
+
+* **Can you dare writing your own script?** You can use any of the functions of the previous list. A simple example:
+```{r, echo = TRUE}
+# This is my first script
+a = 2
+print(a)
+a = a *3
+print(a)
+print(rep("I love R", times = a))
+```
+Did you succeed?
+
+
+
+# Basic data structures: Vectors, Factors, Matrices, Lists and Data frames 
+
+## Vectors
+Vectors are one of the simplest data structures in R. They store a set of objects (all of the same kind), one after the other, in a single dimension. 
+
+```{r  vectors, echo = TRUE}
+v1 <- c(1, 2, 3)
+v2 <- c("a", "b", "cucu")
+v3 <- c(1.9, 2.5, 0.6)
+```
+There are several functions that can be used for creating vectors
+```{r  fucntions for vectors, echo = TRUE}
+seq(from = 1, to = 11, by = 2)
+rep(2,5)
+rep(1:2,3)
+rep(1:3, 2:4)
+```
+
+We can use functions to operate on vectors and we can perform arithmetic operations between vectors
+```{r}
+v1 <- 1:4
+v2 <- log(v1)
+(v3 <- c(v1, v2))
+```
+The elements of the vectors can have lables, and we can obtain them by using the function "names"
+```{r, echo = TRUE}
+ages <- c(Gabriel = 8, Zoe = 6, Cora = 2)
+names(ages)
+```
+We can visualize the whole vector as
+```{r}
+ages
+```
+Being able to select (and modify) certain components of a vector can be very useful. There are several ways to do it:
+
+```{r, echo = TRUE}
+(w <- 9:18)
+w[1]
+w[1] <- 9999
+w
+w[2]
+w[c(4, 3, 2)]
+w[c(1, 3)] ## not the same as
+w[c(3, 1)]
+w[1:2]
+w[3:6]
+w[seq(1, 8, by = 3)]
+vv <- seq(1, 8, by = 3)
+w[vv]
+```
+## Factors
+
+Factors in R are vectors that have levels and labels, and are used to treat categorical variables. Some examples of categorical variables that are treated as factors in R, and that we will see along this course, are: "sex" (Male/Female), health condition ("healthy/not-healthy"), dose of a drug (placebo/low/high) and many others. The function *factor* converts a vector into a factor. Have a look at the following functions and characteristics.
+```{r, echo = TRUE, fig.align = 'center'}
+sex <- factor(c("Female", "Female", "Female","Male", "Male"))
+levels(sex)
+(x <- as.numeric(sex))
+y <- c(170,157,163,180,168)
+plot(sex, y)
+par(mfrow = c(2,1), mar = c(2,4,2,4))
+# pay attention to the difference in using the same function (plot) if the 
+# arguments are factors or numbers.
+plot(x, y)
+plot(x,y, col = c("red","blue")[sex])
+```  
+
+## Matrices
+Matrices are two-dimensional, and are defined by a number of columns and a number of rows. They can be created from vectors as:
+
+```{r}
+matrix(1:10, nrow = 2)
+matrix(1:10, ncol = 2)
+matrix(1:10, nrow = 2, byrow = TRUE)
+#
+v1 <- 1:5
+v2 <- 11:15
+rbind(v1, v2)
+cbind(v1,v2)
+```
+Matrices are in two dimensions, but operations such as indexing, sub-setting or arithmetic operations are treated similar than in vectors. The first index corresponds to rows, the second to columns. 
+```{r}
+A <- matrix(1:20, nrow = 5)
+A
+A[1, ] ## first row
+## [1] 1 6 11
+A[, 2] ## second column
+## [1] 6 7 8 9 10
+A[4, 2] ## fourth row, second column
+A[3, 2] <- 999
+A
+A[1, ] <- c(90, 91, 92, 93)
+A
+A < 4
+```
+## Lisits
+In R, lists are general containers. We will roughly used them, but they appear quite often. Have a look to the following examples to get an idea of how they look. 
+```{r}
+listA <- list(a = 1:5, b = letters[1:3])
+listA
+listB <- list(one.vector = 1:10, hello = "Hola",
+one.matrix = matrix(rnorm(20), ncol = 5),
+another.list =
+list(a = 5,
+b = factor(c("male",
+"female", "female"))))
+listB
+```
+## Data frames
+Data frames are made up of vectors with the same dimensions, but each vector can be a different type of class. We will now directly work with a data frame.
+If we want to open a file, need first choose a working directory. Use the function **setwd** and then check that the directory is the one that you need by using **getwd()**. Please write here the pathway in your computer. Remember that the '' are needed. Download from moodle the file "Horas ME". Save it in your wd.
+```{r}
+getwd()
+Horas_ME <- read.csv(file = "C:/Users/BL.5060101/Dropbox/PC (2)/Documents/UAM 23-24/MEC/Chapter0/Esquema clases.csv",sep = ';', header = TRUE)
+```
+We can have access to the different components of the data frame by different ways
+```{r}
+Horas_ME
+Horas_ME[1,]
+colnames(Horas_ME)
+Horas_ME[,"FECHA"]
+Horas_ME$Contenido
+
+class(Horas_ME)
+class(Horas_ME$HORAS)
+class(Horas_ME$FECHA)
+```
+**Exercise** If you look at the environment window you should see your file, which includes the schedule of our ME sessions. Double click and have a look. We will try to play a little bit with the data file from the console. I'll give some tools, and then I would like you to try to add to Horas_ME (typing in the console) two extra columns in which you'll write, either if you plan to assist to class or not (Asistencia: TRUE or FALSE?) and the number of minutes you think you will be paying attention to class on each respective day (Atención: 0 min).
+
+
+## The special functions of the "apply" familiy and "aggregate" 
+
+One of the great strengths of R is operating over whole vectors, arrays, lists, etc. Some available
+functions are: apply, lapply, sapply, tapply, mapply. Please look at the **help** for these functions. Here we will show some examples, and you should understand what is happening. 
+
+**apply**
+```{r}
+(Z <- matrix(c(1, 27, 23, 13), nrow = 2))
+apply(X = Z, MARGIN = 1, FUN = max)
+# we can skip entering the arguments R name
+apply(Z, 2, max)
+```
+**lapply & tapply**
+With lists we will use lapply, with data frames tapply. For example, lets look at the first element of each of the components of the list
+
+```{r, echo = TRUE}
+(listA <- list(one.vector = 1:10, hello = "Hola",
+one.matrix = matrix(rnorm(20), ncol = 5),
+another.list = list(a = 5,
+b = factor(c("male", "female", "female")))))
+
+lapply(X = listA, FUN = function(x) x[[1]])
+
+# now a data frame
+(one.dataframe <- data.frame(age = c(12, 13, 16, 25, 28), 
+                             sex = factor(c("male", "female",
+"female", "male", "male"))))
+
+tapply(X = one.dataframe$age, INDEX = one.dataframe$sex, FUN = mean)
+```
+**aggregate, by and with**
+Aggregate can be used in similar situations as tapply, but it provides a slightly different output
+```{r, echo = TRUE}
+(one.dataframe <- data.frame(age = c(12, 13, 16, 25, 28), 
+                             sex = factor(c("male", "female",
+                                            "female", "male", "male"))))
+
+aggregate(x = one.dataframe$age, by = list(one.dataframe$sex), FUN = mean)
+## make the aggregating variable explicit,
+## and give it another name
+aggregate(one.dataframe$age, list(Sexo = one.dataframe$sex), mean)
+# a more complicated function can be used
+
+aggregate(one.dataframe$age, one.dataframe[2], function(x) c(Mean = mean(x), 
+                                                             SD = sd(x)))
+# a formula that directly relates the "x" and the "by" can be used, 
+# but then the specific dataset needs to be specified
+
+aggregate(age ~ sex, data = one.dataframe, function(x) c(Mean = mean(x), 
+                                                         SD = sd(x)))
+# We can also apply a function to multiple columns. For example, we can add 
+# the body weight of each person
+
+one.dataframe$BW <- c(53,59,66,80,75)
+aggregate(one.dataframe[, c("age", "BW")], 
+          list(Sex = one.dataframe$sex),
+          function(x) c(Mean = mean(x), SD = sd(x)))
+
+# or, in the "forumla" way
+aggregate(cbind(age,BW) ~ sex, data = one.dataframe, 
+          function(x) c(Mean = mean(x), SD = sd(x)))
+
+# alternatively, we can use the "with" function
+with(one.dataframe,aggregate(age ~ sex, 
+                             FUN = function(x) c(Mean = mean(x), SD = sd(x))))
+
+```
