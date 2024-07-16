@@ -14,6 +14,7 @@ library(RcmdrMisc)
 ```
 
 # This will not be misterius at the end of the course:
+(based on: https://github.com/rdiaz02/R-bioinfo-intro This work is Copyright, ©, 2014-2021, Ramon Diaz-Uriarte, and is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License: http://creativecommons.org/licenses/by-sa/4.0/.*)
 
 This is the fictitious scenario: 50 subjects, and of those 30 have cancer and 20 don’t. You
 measure 1000 genes, but none of the genes have any real difference between the two groups; for
