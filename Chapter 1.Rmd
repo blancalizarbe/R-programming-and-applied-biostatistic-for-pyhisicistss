@@ -1,0 +1,512 @@
+---
+title: "**Master Fisica de la Materia Condensada y Sistemas Biologicos, 2023-24** MÉTODOS EXPERIMENTALES Y COMPUTACIONALES EN BIOFÍSICA R programming and applied statistics: Chapter 1: An introduction to R: example and plots"
+author: "Blanca Lizarbe, blanca.lizarbe@uam.es"
+date: "28-09-2023"
+output:
+     bookdown::pdf_document2: default
+---
+
+```{r setup, include= FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(root.dir = 'C:/Users/BL.5060101/Dropbox/PC (2)/Documents/UAM 22-23/MEC/Chapter 1')
+library(car)
+library(RcmdrMisc)
+```
+
+# This will not be misterius at the end of the course:
+
+This is the fictitious scenario: 50 subjects, and of those 30 have cancer and 20 don’t. You
+measure 1000 genes, but none of the genes have any real difference between the two groups; for
+simplicity, all genes have the same distribution. You will do a t-test per gene, show a histogram of
+the p-values, and report the number of “significant” genes (genes with p < 0.05).
+This is the R code:
+
+```{r}
+randomdata <- matrix(rnorm(50 * 1000), ncol = 50)
+class <- factor(c(rep("NC", 20), rep("cancer", 30)))
+pvalues <- apply(randomdata, 1, 
+                 function(x) t.test(x ~ class)$p.value)
+hist(pvalues)
+```
+```{r}
+sum(pvalues < 0.05)
+```
+
+The example could be made faster, you could write a function, prepare nicer plots, etc, but the
+key is that in six lines of code you have settled the discussion. Let’s try to understand what we did.
+
+1. Type (do not copy-and-paste!) the example above in a new script and then execute it. If
+you get syntax errors, make sure you verify what you wrote. If (but only if) you become
+desperate, copy-paste the code into a script and execute it (or into a file and run it).
+
+2. Play with the following and try to understand what is happening. We will explain it in class:  
+
+```{r out.width="50%", results = "hide", fig.align='center'}
+randomdata[1, ]
+randomdata[, 1]
+randomdata[2, ]
+randomdata[, 2]
+randomdata[2, 3]
+class
+as.numeric(class)
+pvalues[1]
+t.test(randomdata[1, ] ~ class)
+t.test(randomdata[1, ] ~ class)$p.value
+pvalues[1:10] < 0.05
+sum(c(TRUE, TRUE, FALSE))
+hist(c(1, 2, 7, 7, 7, 8, 8))
+```
+  
+3. And what about that apply?
+From your experience with other programming languages, this might make sense:
+```{r}
+## For ease
+rd2 <- randomdata[1:10, ]
+## Where we will store results
+pv2 <- vector(length = 10)
+
+for(i in 1:10) {
+pv2[i] <- t.test(rd2[i, ] ~ class)$p.value
+}
+pv2
+## Compare with
+pvalues[1:10]
+```
+4. Now, use apply
+```{r}
+apply(rd2, 1, function(z) t.test(z ~ class)$p.value)
+```
+Or very verbose (this is unnecessarily verbose):
+```{r}
+myfunction <- function(y, classfactor = class) {
+t.test(y ~ classfactor)$p.value
+}
+apply(rd2, 1, myfunction)
+```
+5. We haven’t said it explicitly, but when we use apply we are passing a function (our anonymous
+function or myfunction as above) to another function. This is something very common and easy in R: passing functions to other functions.
+
+
+# Qualtiative assessments: descriptive statistics and graphs
+
+In this lesson, we are going to use R codes to arrange experimental data and perform some qualitative assessments, such as plots, and **descriptive statistics**, using real experimental data. In descriptive statistics, the data is summarized in different ways that try to exhibit its main features, such as its minimum and maximum, distribution, measures of center. Descriptive statistics is distinguished from **inferential statistics** (or inductive statistics), frequently used in experimental research, by its aim to **summarize a sample**. In inductive statistic, the data set of a specific sample (probably such as the type of data you obtained in your "TFG"), is used to learn about the population that the sample of data is thought to represent. 
+
+## Data and graphs
+
+**Specifically, we will learn the following concepts**  
+
++ Types of variables and how to represent them  
++ Measures of center, spread and error  
++ Experimental design and replicates  
+
+**Regarding the R programming, we will specifically learn to:**  
+
++ Read data  
++ Subset and rearrange data sets  
++ Transform data  
++ Make different types of graphs  
+
+
+
+### Case study  
+We will work with experimental data from my **magnetic resonance imaging (MRI)** lab, from the experiments performed by the TFM student "B. Yague". The experiments are performed to investigate *the role of Aquaporin-4 (water-channel protein) in brain glucose uptake*. Briefly, we know from previous works [Lizarbe et al. 2019] that, in mice, glucose administration alters some brain MRI parameters. Now, we want to understand whether this glucose-induced changes are mediated by AQP-4, and designed a quite complete experimental setup to test that.   
+
+*Experimental setup*
+
+We acquired a set of magnetic resonance images (MRI) of the brain of 32 animals, in 4 different experimental conditions (4 groups of 8 animals each) (**Figure 1**). The experiment went as follows: Mice were anesthetized and placed (still under anesthesia) inside a 7T MRI scanner. We acquired two initial MRI "sequences" ("sequences" in the MRI language, means a series of images acquired with specific conditions, in order to obtain different biophysical information) of their brains, and obtained **two MRI parameters**: the **ADC** (the Apparent Diffusion Coefficient of water molecules) and **T2star** (a magnetic-moment relaxation time) **for every brain pixel**. We afterwards administrated (via i.p.) a AQP-4 inhibitor solution (called TGN-20) to half of the animals, and a saline solution to the other half. Subsequently to this administration, we acquired a second set of ADC and T2star sequences and registered the corresponding values for every pixel. 20 minutes after, we administered to half of the animals a glucose solution, to the rest of animals a saline solution. Thus, we ended up having **4 experimental groups**, depending on the substances administered:
+
+1. saline + saline ="Saline"  
+2. saline + glucose = "Glucose"  
+3. TGN + saline ="TGN+saline"   
+4. TGN + glucose ="TGN+Glucose"  
+
+Plus,for each animal, we have three time-point measurements:    
+1. "t0"  
+2. "t1"  
+3. "t2"
+
+Besides, we group our pixel values depending on the brain region they belong to:    
+1. Hypothalamus  
+2. Hippocampus  
+3. Cortex  
+
+```{r fig 1, echo = FALSE, out.width="75%", fig.cap = "Experimental design of case 1", fig.align= "center"}
+knitr::include_graphics("C:/Users/BL.5060101/Dropbox/PC (2)/Documents/UAM 23-24/BM-2/Lesson1/Experimental design.png")
+```
+
+> **Wait a minute: Variables**: How many variables do we have in this experiment? Can you detect any differences betweem them?  
+
+> *Types of variables* 
+*There are two main types of variables: **numerical**, (what we record is a number that represent a measurable quantity, e.g. height of an individual,the pg of mRNA per cell, the value of a magnetic resonance image on a pixel) and **categorical**, (what we record is a qualitative characteristic, e.g. the color of eyes, gender, brain region). The different values that a categorical variable can take are referred to as levels (e.g. the categorical variable gender has only two levels, male and female). The levels can show a natural order (e.g. level of education: elementary school, high school, college graduate, PhD), in this case they are termed ordinal categorical, or be unordered (e.g. gender) and then we call them nominal categorical variables (or just categorical). Numerical variables can be continuous (e.g. temperature) or discrete (e.g. number of siblings). Note that the label for some categorical variables are numbers (e.g. zip codes), which can mislead us to classify them as numerical. As a rule of thumb, with numerical variables it is sensible to add, subtract, or take averages with their values. In contrast, it does not make sense to apply arithmetic operations to categorical variables (what would be the meaning of adding of two zip codes?)*
+
+You can find the data of this study in the files "Brain MRI".
+
+
+## Reading data
+We start by loading the data. We first need choose a working directory with the function *"setwd"*. Please write here the pathway in your computer. Remember that the '' are needed. 
+
+```{r, echo = TRUE}
+#setwd('C:/Users/BL.5060101/Dropbox/PC (2)/Documents/UAM/ME')
+##setwd('C:/Users/Laboratorio/Documents/UAM/MEC')
+```
+Our data can be save either in several formats (.dat,.csv, .xls...). Download the files from moodle. Save them. Choose one of them. 
+
+```{r read}
+Brain_MR_data <- read.csv("C:/Users/BL.5060101/Dropbox/PC (2)/Documents/UAM 23-24/BM-2/Lesson1/Brain_MRI_data.csv",
+                       header = TRUE,
+                       stringsAsFactors = TRUE, 
+                       sep=";", 
+                       na.strings="NA", 
+                       dec=",", strip.white = TRUE)
+#For .csv
+#Brain_MR_data2 = read.csv(file = "Brain_MR_data.csv", sep = ';', header = TRUE)
+```
+
+Let's have a look to the type of data we have (type "Brain_MR_data" and press enter): 
+```{r}
+##Brain_MR_data
+```
+This is a 279-rows and 6-column document that contains our ADC and T2 values **numerical continuous variables**, together with the information of the animal, group, time-point and animal, the **categorical variables**. This type of data configuration is known as *stacked*, and is the optimal for R programming purposes. We could have had the data in many different configurations. For this one, and to summarize all information, we labelled every animal with a number, and we used also numbers to identify time-point measurements (labelled with 0,1 or 2), and area (mean values of all the containing pixels). Additionally, we used numbers (1 to 4) to identify the 4 experimental groups (Saline=1, Glucose=2, TGN+Saline=3, TGN+glucose=4). ADC and T2 are **continuous variables**, while Animal, Time-point, Group, and Area are **categorical variables**.   
+
+> **Wait a minute: Do you understand the experimental design?**  
+Please spend a couple of minutes thinking about the different groups you could compare, depending on the biological question that we ask.      
+* Which is the "n" (number of subects) in this experiment?  
+* What do you think of the pixels, which type of measures are they? 
+
+It is important to distinguish, for every experimental setup, between technical replicates, biological replicates and sample size. Take a look at Figure 4.
+
+```{r fig2,  echo = FALSE, out.width = "65%", fig.cap =  "Biological replicates", fig.align = "center"}
+knitr::include_graphics("C:/Users/BL.5060101/Dropbox/PC (2)/Documents/UAM 23-24/BM-2/Lesson1/biological replicates.png")
+```
+
+When R reads numbers it understands them has plane numbers. However, **in our data, "Time", "Animal", "Group" and "Area" should not be numerical variables, they should be considered categorical**. **In R, factors are used to represent categorical data**. Factors can be ordered or unordered, and are an important class for statistical analysis and for plotting. **Factors are stored as integers**, and have labels associated with these unique integers. While factors look (and often behave) like character vector. By default, R always sorts levels in alphabetical order. Now, in order to explore the behavior of our ADC and T2 values depending on the factors, We need to convert our "independent variables" (that are originally understood by R as plane numbers) into factors.
+
+```{r,echo = TRUE}
+class(Brain_MR_data$Animal)
+Brain_MR_data$Animal <- factor(Brain_MR_data$Animal)
+Brain_MR_data$Group <- factor(Brain_MR_data$Group)
+Brain_MR_data$Area <- factor(Brain_MR_data$Area)
+Brain_MR_data$Time <- factor(Brain_MR_data$Time)
+```
+We will rename one variable (for convenience) and check the class of the numeric variables
+```{r}
+colnames(Brain_MR_data)
+colnames(Brain_MR_data)[6] <- "T2star"
+colnames(Brain_MR_data)
+class(Brain_MR_data$T2star)
+class(Brain_MR_data$ADC)
+```
+We will change comas into dots and remove NA values using the **as.numeric**, **sub**, and **na.omit** functions.
+
+```{r,echo = TRUE}
+valores = na.omit(Brain_MR_data)
+```
+
+##  Descriptive statistics. Subsetting and staking 
+
+Let's perform qualitative assessments of our data. We will load a package **"pastecs"** that includes the function "**by**" to explore the main values of our variables, depending on the factor assessed.
+
+* Depending on the experimental group  
+* Depending on the time of measurement
+
+Please type "?by" to read a bit on this fucntion.
+
+```{r,echo = TRUE}
+library(pastecs)
+
+#We can additionally obtain normality-related information on the data distribution
+by(data = valores$ADC, 
+   INDICES = valores$Time, 
+   FUN = stat.desc, norm = TRUE)
+#you can do the same for the T2star values
+```
+> **Wait a minute: Refreshing concepts**    
+* Please take a look to the tables above. Are you familiar with the different terms?
+
+|Name                      |   Calculated as                                      |
+|:------------------------:|:----------------------------------------------------:|
+|median                    |50th percentile (Q2)                                  |
+|inter quartile range      |    IQR = Q3-Q1                                       |
+|range                     |    min, max                                          |   
+|mean                      |$\overline{x}=\sum_{i=1}^{n}x_{i}$                    |
+|variance                  |$s^2=\frac{\sum_{i=1}^{n}(x_{i}-\overline{x})}{n-1}$  | 
+|standard deviation        |$s=\sqrt{s^{2}}$                                      |
+|standard error of the mean|$SE_{\overline{x}}=\frac{s}{\sqrt{n}}$                       |
+|confident interval        |$\overline{x} \pm margin Error$                       |
+|coefficient of variation  |$\frac{s}{\overline{x}}*100$                          |
+|skewness^a^               |$g=\frac{\sum_{i=1}^{n}(x_{i}-\overline{x})^3/N}{s^3}$|
+|kurtosis^a^               |$k=\frac{\sum_{i=1}^{n}(x_{i}-\overline{x})^4/N}{s^4}$|
+
+^a^There are alternative definitions for kurtosis and skewnwess.(see Henderson, RA Testing experimental data for univariate normality, 2016). We will how to perform normality tests are in the near future. For now, you can look at the follwing figure: 
+
+```{r out.width = "50%", fig.capt = "Figure 3", fig.align = "center", echo = FALSE}
+knitr::include_graphics("C:/Users/BL.5060101/OneDrive - UAM/UAM/ME/Images/Kurtosis and Skewness.png")
+```
+
+We also want to obtain the information of time points within experimental groups. We can create subgroups using "**subset**".
+
+```{r,echo = TRUE}
+salino <- subset(valores, valores$Group == "Saline")
+glucosa <- subset(valores, valores$Group == "Glucose")
+TGN_salino <- subset(valores, valores$Group == "TGN.Saline")
+TGN_glucosa <- subset(valores, valores$Group == "TGN.Glucose")
+
+t0 <- subset(valores, valores$Time == "T0")
+t1 <- subset(valores, valores$Time == "T1")
+t2 <- subset(valores, valores$Time == "T2")
+
+Area1 <- subset(valores, valores$Area == "Hippocampus")
+Area2 <- subset(valores, valores$Area == "Cortex")
+```
+
+Now we might want obtain, for each experimental subgroup, the descriptive values of each time point
+
+```{r, echo = TRUE}
+#by(salino$ADC, salino$Time, stat.desc, norm = TRUE)
+#by(glucosa$ADC, glucosa$Time, stat.desc, norm = TRUE)
+#by(TGN_salino$ADC, TGN_salino$Time, stat.desc, norm = TRUE)
+#by(TGN_glucosa$ADC, TGN_glucosa$Time, stat.desc, norm = TRUE)
+
+```
+
+## Plots
+R can produce many graph types. The simplest way is to use the family of functions **plot()**, which belong to the package "**graphics**" from the basic R, and includes many kind of representations, such as **boxplot()** and **barplot()**
+
+### Boxplots and Histograms
+
+```{r, fig.height = 3,fig.width = 4, fig.align = 'center', echo = TRUE}
+plot(x = salino$Time, 
+     y = salino$ADC, 
+     xlab = "Time", 
+     ylab = "ADC", 
+     main = "ADC salino group")
+
+# alternatively, we can write: plot(ADC ~ Time, glucosa)
+```
+Do you know what a boxplot is displaying? Have you ever drawn a boxplot using excell, for example? You should be able to identify the different parts of the boxplot (median, IQR, whiskers, outliers)
+ 
+```{r fig.height = 3,fig.width = 4, fig.align = 'center',echo = TRUE}
+hist(x = glucosa$ADC, 
+     breaks = c(570,625,900,1100), 
+     main = "Histogram of glucosa ADC", xlab = "ADC")
+```
+If you type "help(histogram)" or "?histogram" you can get the info on the different arguments of every function. Try it.
+
+> **Wait a minute: look at the histogram**  
+What do you think of this distribution? Is it normal? What is happening? In this histogram, we are actually plotting data from t0, t1 and t2 measurements all grouped. Could you guess to which time point do the low and high ADC values come from? 
+
+### Plotting graphs in the same figure    
+We can plot several graphs together using the "**par()**" function and the **mfrow** graphical parameter (or the corresponding **mfcol**), to specify the number of subplots we need. mfrow takes a vector of form c(m, n) which divides the given plot into m*n array of subplots. For example, if we need to plot two graphs side by side, we would have m=1 and n=2. We will first create the subgroups of glucosa (t0,t1,t2) and them plot them side by side.
+
+```{r,echo = TRUE}
+salino_t0 <- subset(t0, t0$Group == "Saline")
+glucosa_t0 <- subset(t0, t0$Group == "Glucose")
+TGN_salino_t0 <- subset(t0, t0$Group == "TGN.Saline")
+TGN_glucosa_t0 <- subset(t0, t0$Group == "TGN.Glucose")
+
+salino_t1 <- subset(t1, t1$Group == "Saline")
+glucosa_t1 <- subset(t1, t1$Group == "Glucose")
+TGN_salino_t1 <- subset(t1, t1$Group == "TGN.Saline")
+TGN_glucosa_t1 <- subset(t1, t1$Group == "TGN.Glucose")
+
+salino_t2 <- subset(t2, t2$Group == "Saline")
+glucosa_t2 <- subset(t2, t2$Group == "Glucose")
+TGN_salino_t2 <- subset(t2, t2$Group == "TGN.Saline")
+TGN_glucosa_t2 <- subset(t2, t2$Group == "TGN.Glucose")
+```
+
+```{r fig.height = 3,fig.width = 6,echo = TRUE, fig.align='center'}
+par(mfrow = c(1,3))
+hist(glucosa_t0$ADC, xlab = "ADC", main = "ADC glucose t0")
+hist(glucosa_t1$ADC, xlab = "ADC", main = "ADC glucose t1")
+hist(glucosa_t2$ADC, xlab = "ADC", main = "ADC glucose t2")
+```
+
+### ggplot2
+
+Alternatively to the **plot** function, we can use the  package "**ggplot2**", which will allow us to design our own complex graphs. With **ggplot2**, graphics are first created with **qplot** or **ggplot**, and progressively modified by adding "layers" through the use of the **gg** function.  We will see many examples now that will clarify all this. For more information see *[R Graphics, book from Paul Murrel, available at the uam libary]* . We will first try a simple graph to see the specific ADC values in the different time points.
+
+We need first define the information contained in the graph, the basic would be: **ggplot(data,aes(x,y))**, where "aes" stands for aesthetics, and typically defines the variables that are going to be plotted.  
+
+```{r,echo = TRUE, fig.height = 2, fig.width = 3, fig.align='center'}
+library(ggplot2)
+graph1 <- ggplot(data = glucosa, aes(x = Time, y = ADC))
+graph1
+```
+Because we did not specify the type of representation, we find an empty layer. To choose the type of graph (dots, lines, boxplot, histogram...) we add "**+ geom_point()** or **+ geom_lines()**", for example. To add extra information, such as title, x and y labels, we can add "**ggtitle()** or + **labs()**" and so on, with different type of functions that modify the graphs. We will see some of them in this document, but many others can be found in the R documentation sites.
+
+```{r fig.height=2,fig.width=3, fig.align='center',echo = TRUE}
+Figure1 <- graph1 + 
+  geom_point() + 
+  ggtitle("ADC Group glucosa") + 
+  labs(x = "Time",y = "ADC (micrometers2/s)") + 
+  theme(plot.title = element_text(hjust = 0.5))
+# The argument in "theme" centers the plot title. By default is left-aligned.
+Figure1
+```
+We can plot more than one graph in the same figure, in this case with the "**gridExtra** package and the **grid.arrange** function
+
+```{r fig.height = 3,fig.width = 6, fig.align ='center',echo = TRUE}
+require(gridExtra)
+
+graph2 <- ggplot(salino, aes(Time, ADC))
+
+Figure2 <- graph2 + 
+  geom_point(size = 5) + 
+  ggtitle("ADC Group salino") + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+grid.arrange(Figure1, Figure2, ncol = 2, nrow = 1)
+```
+
+We can represent all subgroups on the same graph, but with different colors. We will create four subplots with some differences and then use the "**grid.arrange** function to plot them together.
+
+```{r,echo = TRUE}
+One = ggplot(valores, aes(Time, ADC, colour = Group)) + 
+  geom_point()
+# points are too close to deliver visual information, we can use the "jitter" 
+# function
+
+Two = ggplot(valores, aes(Time, ADC, colour = Group)) + 
+  geom_point(position = "jitter")
+# Still, this graph with all groups combined does not seem too useful. 
+# We try box-plotting
+
+Three = ggplot(valores, aes(Time, ADC, colour = Group)) + 
+  geom_boxplot()
+
+Four = ggplot(valores, aes(Time, T2star, colour = Group)) + 
+  geom_boxplot()
+
+grid.arrange(One,Two,Three,Four)
+```
+
+> **Wait a minute**: Let's have a look to the boxplots above. Is there any relationship between ADC and T2star? 
+
+We can try to represent T2star Vs ADC, and add regression lines (+- 95% CI). Do you now what a CI is?  
+
+> *Confident intervals. The X confident interval is an estimate of that interval within which, if we were  to sample 100 times a specific measure, X of your samples would fall. For example, imagine you want to estimate the average height of the UAM students. This is an exact number, a "true mean", but we would not be able to calculate such true value, so we take several samples. We could measure the average height in this class (mean 1), and I could calculate the average height on the rest of the groups where I teach (mean 2, mean 3, mean 4). Such means will not be exactly the same, and will not be the same number as the "true mean". **A 95% confidence interval means that if we were to take 100 different samples and compute a 95% confidence interval for each sample, then approximately 95 of the 100 confidence intervals will contain the true mean value**. The confidence interval does not reflect the variability in the unknown parameter. It reflects the amount of random error in the sample, and provides a range of values that are likely to include the unknown parameter (the true mean). Another way of thinking about a confidence interval is that it is the range of likely values of the parameter (defined as the point estimate + margin of error) with a specified level of confidence (which is similar to a probability). We will see more on CI in Chapter 2. If you want for more details now you can check [**this reference**](https://sphweb.bumc.bu.edu/otlt/mph-modules/bs/bs704_confidence_intervals/bs704_confidence_intervals_print.html)*  
+
+
+```{r,echo = TRUE, fig.align='center'}
+ggplot(TGN_glucosa, aes(T2star, ADC, colour = Time)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", aes(fill = Time), alpha = 0.1) + 
+  labs(x = "T2star",y = "ADC (micrometers2/s)")
+```
+
+> Take a look at the last graph. Potentially, "green" line is telling us that there might be some relationship between ADC and t2star (for "Time=1"). We could think of some regression tests to check it (in the future).
+
+### Bar graphs with mean values 
+
+```{r fig.height=2,fig.width=3, fig.align='center',echo = TRUE}
+# First only for a subgroup
+bar <- ggplot(salino, aes(Time, ADC)) + 
+  stat_summary(fun = mean, geom = "bar", fill = "White", colour = "Black")
+
+# adding error values (95% confident intervals of the means)
+bar + 
+  stat_summary(fun.data = mean_cl_normal, geom = "pointrange") + 
+  labs(x = "Time", y = "Mean ADC")
+
+## For several groups
+bar <- ggplot(valores, aes(Time, ADC, fill = Group)) + 
+  stat_summary(fun = mean, geom = "bar", position="dodge")
+
+bar + 
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar",          position = position_dodge(width=0.90), width=0.2) + 
+  labs(x = "Time", y ="Mean ADC", fill="Group")
+```
+```{r fig.height = 6,fig.width = 4, fig.align ='center',echo = TRUE}
+## Split by the function "facet"
+bar <- ggplot(valores, aes(Time, T2star, fill = Group))
+
+bar + stat_summary(fun = mean, geom = "bar") + 
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar", width = 0.2) + 
+  facet_wrap(~ Group)+ labs(x ="Time", y= "Mean T2star")
+```
+
+### Line charts 
+We will plot the subgroups (points connected by dashed lines)
+```{r fig.height = 2, fig.width = 4, fig.align = 'center',echo = TRUE}
+
+line <- ggplot(glucosa, aes(Time, ADC)) + 
+stat_summary(fun = mean, geom = "point", aes(group = 1)) + 
+stat_summary(fun = mean, geom = "line", aes(group = 1), linetype = "dashed")
+
+#adding error bars
+line +  stat_summary(fun.data = mean_cl_boot, geom = "errorbar", width = 0.2)
+
+#line charts for several groups 
+line <- ggplot(valores, aes(Time, ADC, colour = Group)) + 
+stat_summary(fun = mean, geom = "point", aes(group = Group)) + 
+stat_summary(fun = mean, geom = "line", aes(group = Group), linetype = "dashed")
+
+line + stat_summary(fun.data = mean_cl_boot, geom = "errorbar", width = 0.2) +
+labs(x ="Time", y = "Mean ADC", colour = "Group")
+```
+
+### More on histograms: Understanding distributions and normality checks
+We have seen a couple of histograms with the "**plot()**" function. Let's try now with the ggplot usage. We first define the data and aesthetics, and then add the info on the type of representation and some characteristics such as the "**binwidth**"(), which accounts for the range of ADC (in this example) covered by one bar.
+
+```{r,echo = TRUE}
+myhistogram_ADC <- ggplot(valores, aes(ADC)) 
+myhistogram_ADC + geom_histogram(aes(y = ..count..), binwidth =30) +
+facet_grid(Time ~ Group) 
+#In this case, we used the "facet_grid" function to separate the histograms depending of "Group" (rows) and "Time" (cols).
+```
+We can plot the **density histogram** instead of the total number of counts (frequency). 
+
+```{r,echo = TRUE, fig.height=4, fig.width=5, fig.align ='center'}
+myhistogram_ADC <- ggplot(salino, aes(ADC, color= Time))
+
+myhistogram_ADC + 
+  geom_histogram(aes(y = ..density..), binwidth=50) +
+facet_grid(~Time) +
+  ggtitle("Saline ADC histograms for each time-point") + 
+theme(plot.title = element_text(hjust = 0.5))
+```
+
+What do you think a density histogram could be more useful for?
+
+#### Adding the normal curve
+If a set of data with the same mean and sd.dev. was normally distributed, how would it look like? 
+We will add the normal curve and compare it to our data. In this case, we work with the subgroups to calculate the specific curves.
+
++ Open the script "multiple histograms". Run it. You should obtain something similar to:
+ 
+```{r out.width="100%", fig.capt = print("Figure 2"), fig.align= "center"}
+knitr::include_graphics("C:/Users/BL.5060101/OneDrive - UAM/UAM/ME/Images/ADC_multiple_density_histograms.png")
+```
+
+
+```{r,echo = TRUE}
+## Density plots
+ggplot(valores, aes(ADC)) + 
+  geom_density() + 
+  facet_grid(Time ~ Group) + 
+  ggtitle("ADC Density plots for each group and time-point") + 
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+### Qq plots.
+
+If the data are normally distributed then the actual scores will have the same distribution as the score we expect from a normal distribution, and we'll get a straight diagonal line. If values fall on the diagonal of the plot then the variable is normally distributed, but deviations from the diagonal show deviations from normality.
+
+```{r, fig.height = 4, fig.width = 6, echo = TRUE}
+library(car)
+par(mfrow = c(1,2))
+qqnorm(glucosa_t0$ADC)
+qqnorm(glucosa$ADC)
+```
+Adding a reference line
+```{r, fig.height = 6, fig.width = 6, echo = TRUE}
+par(mfrow = c(2,2))
+
+qqPlot(glucosa_t0$ADC) + title("glucosa (t0) ADC")
+qqPlot(glucosa_t0$T2star) + title("glucosa (t0) T2 star")
+qqPlot(salino_t0$ADC) + title("salino (t0) T2 ADC")
+qqPlot(salino_t0$T2star) + title("salino (t0) T2 star")
+```
+
+> We will go deeper into qqplots after learning more about normal distributions in chapter 2. 
